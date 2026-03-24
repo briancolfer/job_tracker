@@ -61,6 +61,51 @@ RSpec.describe JobTracker::CLI do
     end
   end
 
+  describe '#export' do
+    let(:output_path) { Rails.root.join('tmp', 'test_export.csv').to_s }
+
+    after { File.delete(output_path) if File.exist?(output_path) }
+
+    it 'writes a CSV file to the specified path' do
+      create(:job_application, company: 'ExportCo', status: :applied)
+      cli.options = { output: output_path }
+      cli.export
+      expect(File.exist?(output_path)).to be true
+    end
+
+    it 'includes a header row' do
+      cli.options = { output: output_path }
+      cli.export
+      content = File.read(output_path)
+      expect(content).to match(/company/i)
+      expect(content).to match(/status/i)
+      expect(content).to match(/apply_date/i)
+    end
+
+    it 'includes all job applications' do
+      create(:job_application, company: 'AlphaCorp', status: :applied)
+      create(:job_application, company: 'BetaCorp', status: :rejected)
+      cli.options = { output: output_path }
+      cli.export
+      content = File.read(output_path)
+      expect(content).to include('AlphaCorp')
+      expect(content).to include('BetaCorp')
+    end
+
+    it 'prints confirmation with row count' do
+      create(:job_application)
+      cli.options = { output: output_path }
+      expect { cli.export }.to output(/exported/i).to_stdout
+    end
+
+    it 'defaults output path to job_applications_<date>.csv' do
+      cli.options = {}
+      expect { cli.export }.to output(/Exported/).to_stdout
+    ensure
+      Dir.glob(Rails.root.join('tmp', 'job_applications_*.csv')).each { |f| File.delete(f) }
+    end
+  end
+
   describe '#reminders' do
     it 'shows overdue follow-ups' do
       job = create(:job_application, company: 'OverdueInc')

@@ -1,4 +1,5 @@
 require 'thor'
+require 'csv'
 
 module JobTracker
   class CLI < Thor
@@ -119,6 +120,38 @@ module JobTracker
       else
         puts "Error: #{job.errors.full_messages.join(', ')}"
       end
+    end
+
+    desc 'export', 'Export all job applications to CSV'
+    method_option :output, aliases: '-o', desc: 'Output file path (default: tmp/job_applications_<date>.csv)'
+    method_option :status, aliases: '-s', desc: 'Filter by status'
+    def export
+      default_path = Rails.root.join('tmp', "job_applications_#{Date.today}.csv").to_s
+      path = options[:output] || default_path
+
+      applications = JobApplication.order(apply_date: :desc)
+      applications = applications.where(status: options[:status]) if options[:status]
+
+      CSV.open(path, 'w') do |csv|
+        csv << %w[id company role_title job_type location remote source status apply_date job_posting_url notes]
+        applications.each do |job|
+          csv << [
+            job.id,
+            job.company,
+            job.role_title,
+            job.job_type,
+            job.location,
+            job.remote,
+            job.source,
+            job.status,
+            job.apply_date,
+            job.job_posting_url,
+            job.notes
+          ]
+        end
+      end
+
+      puts "Exported #{applications.count} application(s) to #{path}"
     end
 
     desc 'reminders', 'Show overdue and upcoming follow-ups'
