@@ -80,7 +80,7 @@ module JobTracker
     def add
       job = JobApplication.new(
         company: options[:company],
-        apply_date: options[:apply_date],
+        apply_date: options[:apply_date] || Date.today.to_s,
         role_title: options[:role],
         job_type: options[:job_type],
         location: options[:location],

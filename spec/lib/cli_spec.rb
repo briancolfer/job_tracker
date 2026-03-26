@@ -44,6 +44,12 @@ RSpec.describe JobTracker::CLI do
       cli.options = { company: 'NewCo', apply_date: '2026-03-24', status: 'applied' }
       expect { cli.add }.to output(/created/i).to_stdout
     end
+
+    it 'defaults apply_date to today when not provided' do
+      cli.options = { company: 'NewCo', status: 'applied' }
+      cli.add
+      expect(JobApplication.last.apply_date).to eq(Date.today)
+    end
   end
 
   describe '#update' do
