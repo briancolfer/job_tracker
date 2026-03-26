@@ -50,3 +50,13 @@ RSpec for all models (validations, state transitions, associations) and CLI comm
 Rake task maps CSV columns to the new schema. Status values are normalized to the enum pipeline. Rows with missing fields default gracefully.
 ## CSV Export
 `bin/jt export` writes all applications to CSV. Supports `--output/-o` for a custom path and `--status/-s` to filter by status. Defaults to `tmp/job_applications_<date>.csv`. Columns: `id, company, role_title, job_type, location, remote, source, status, apply_date, job_posting_url, notes`.
+## Deployment & Infrastructure
+**Hosting**: Single Droplet on Digital Ocean (minimal specs, ~1 GB RAM).
+**Containerization**: Podman for container management.
+**Database**: SQLite3 running on the same server.
+**Backups**: Weekly backups synced to Mac and home NAS.
+**Monitoring**: Basic monitoring; enhanced setup planned.
+**Security**: Basic security initially; hardening planned.
+**IaC**: Terraform for provisioning the Droplet, firewall rules, DNS, and backup configuration via the `digitalocean/digitalocean` provider.
+**Configuration Management**: Ansible for server setup, Podman configuration, and app deployment.
+**CI/CD**: GitHub Actions — runs RSpec suite and triggers deployment on merge to `main`.
