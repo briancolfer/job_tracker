@@ -1,6 +1,9 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 require 'spec_helper'
 ENV['RAILS_ENV'] ||= 'test'
+# Prevent Rails from attempting to decrypt credentials in the test environment.
+# The master.key/credentials.yml.enc pair may not be present or in sync on all machines.
+ENV['SECRET_KEY_BASE'] ||= 'test_only_secret_key_base_not_used_in_production'
 require_relative '../config/environment'
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?

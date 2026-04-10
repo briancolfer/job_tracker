@@ -57,6 +57,7 @@ group :development, :test do
 
   # Testing
   gem "rspec-rails"
+  gem "capybara"
   gem "factory_bot_rails"
   gem "faker"
 end

@@ -50,4 +50,13 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Bypass encrypted-credentials lookup in tests.
+  # The credentials.yml.enc/master.key pair is not required for the test suite.
+  # Rails 8.1 loads ActiveRecord::Encryption lazily and reads these from credentials
+  # unless they are explicitly set here.
+  config.secret_key_base = "test_only_secret_key_base_not_used_in_production"
+  config.active_record.encryption.primary_key = "test_ar_encryption_primary_key_1234567"
+  config.active_record.encryption.deterministic_key = "test_ar_encryption_deterministic_00000"
+  config.active_record.encryption.key_derivation_salt = "test_ar_encryption_key_derivation_salt"
 end
