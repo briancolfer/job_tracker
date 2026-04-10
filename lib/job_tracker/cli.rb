@@ -97,6 +97,12 @@ module JobTracker
       end
     end
 
+    desc 'statuses', 'List all valid job application statuses'
+    def statuses
+      puts 'Valid statuses:'
+      STATUSES.each { |s| puts "  #{s}" }
+    end
+
     desc 'status ID NEW_STATUS', "Update the status of a job application (#{STATUSES.join(', ')})"
     def status(id, new_status)
       job = JobApplication.find_by(id: id)

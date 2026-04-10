@@ -52,6 +52,12 @@ RSpec.describe JobTracker::CLI do
     end
   end
 
+  describe '#statuses' do
+    it 'lists all valid statuses' do
+      expect { cli.statuses }.to output(/cold_call.*applied.*phone_screen.*technical_screen.*onsite.*offer_received.*accepted.*rejected.*withdrawn.*ghosted/m).to_stdout
+    end
+  end
+
   describe '#status' do
     it 'updates the status of an existing application' do
       job = create(:job_application, status: :applied)
