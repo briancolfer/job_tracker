@@ -36,3 +36,11 @@
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+# JetBrains IDEs
+.idea/
+
+# Vim swap/backup files
+*.swp
+*.swo
+*.bak
