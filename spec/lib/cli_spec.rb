@@ -52,6 +52,28 @@ RSpec.describe JobTracker::CLI do
     end
   end
 
+  describe '#status' do
+    it 'updates the status of an existing application' do
+      job = create(:job_application, status: :applied)
+      cli.status(job.id, 'phone_screen')
+      expect(job.reload.status).to eq('phone_screen')
+    end
+
+    it 'prints confirmation after updating status' do
+      job = create(:job_application, status: :applied)
+      expect { cli.status(job.id, 'rejected') }.to output(/updated/i).to_stdout
+    end
+
+    it 'shows an error for an unknown id' do
+      expect { cli.status(99999, 'applied') }.to output(/not found/i).to_stdout
+    end
+
+    it 'shows an error for an invalid status' do
+      job = create(:job_application, status: :applied)
+      expect { cli.status(job.id, 'interviewed') }.to output(/invalid status/i).to_stdout
+    end
+  end
+
   describe '#update' do
     it 'updates the status of an existing application' do
       job = create(:job_application, status: :applied)

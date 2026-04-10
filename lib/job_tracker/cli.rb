@@ -97,6 +97,26 @@ module JobTracker
       end
     end
 
+    desc 'status ID NEW_STATUS', "Update the status of a job application (#{STATUSES.join(', ')})"
+    def status(id, new_status)
+      job = JobApplication.find_by(id: id)
+      unless job
+        puts "Job application ##{id} not found."
+        return
+      end
+
+      unless STATUSES.include?(new_status)
+        puts "Invalid status '#{new_status}'. Valid statuses: #{STATUSES.join(', ')}"
+        return
+      end
+
+      if job.update(status: new_status)
+        puts "Updated job application ##{job.id}: #{job.company} (#{job.status})"
+      else
+        puts "Error: #{job.errors.full_messages.join(', ')}"
+      end
+    end
+
     desc 'update ID', 'Update a job application'
     method_option :status, aliases: '-s', desc: "New status (#{STATUSES.join(', ')})"
     method_option :role, aliases: '-r', desc: 'Role title'
