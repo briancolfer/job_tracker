@@ -5,6 +5,11 @@ RSpec.describe JobTracker::CLI do
   let(:cli) { described_class.new }
 
   describe '#list' do
+    it 'shows help with --help' do
+      cli.options = { help: true }
+      expect { cli.list }.to output(/Usage:/i).to_stdout
+    end
+
     it 'outputs a table of job applications' do
       create(:job_application, company: 'Acme Corp', status: :applied)
       expect { cli.list }.to output(/Acme Corp/).to_stdout
@@ -21,6 +26,11 @@ RSpec.describe JobTracker::CLI do
   end
 
   describe '#show' do
+    it 'shows help with --help' do
+      cli.options = { help: true }
+      expect { cli.show(nil) }.to output(/Usage:/i).to_stdout
+    end
+
     it 'displays job application details' do
       job = create(:job_application, company: 'Gamma LLC', role_title: 'SRE')
       expect { cli.show(job.id) }.to output(/Gamma LLC/).to_stdout
@@ -33,6 +43,11 @@ RSpec.describe JobTracker::CLI do
   end
 
   describe '#add' do
+    it 'shows help with --help' do
+      cli.options = { help: true }
+      expect { cli.add }.to output(/Usage:/i).to_stdout
+    end
+
     it 'creates a new job application' do
       expect {
         cli.options = { company: 'NewCo', apply_date: '2026-03-24', status: 'applied' }
@@ -50,15 +65,67 @@ RSpec.describe JobTracker::CLI do
       cli.add
       expect(JobApplication.last.apply_date).to eq(Date.today)
     end
+
+    it 'accepts role_title option' do
+      cli.options = { company: 'NewCo', role: 'Senior DevOps' }
+      cli.add
+      expect(JobApplication.last.role_title).to eq('Senior DevOps')
+    end
+
+    it 'accepts job_type option' do
+      cli.options = { company: 'NewCo', job_type: 'Full-time' }
+      cli.add
+      expect(JobApplication.last.job_type).to eq('Full-time')
+    end
+
+    it 'accepts location option' do
+      cli.options = { company: 'NewCo', location: 'San Francisco, CA' }
+      cli.add
+      expect(JobApplication.last.location).to eq('San Francisco, CA')
+    end
+
+    it 'accepts remote flag' do
+      cli.options = { company: 'NewCo', remote: true }
+      cli.add
+      expect(JobApplication.last.remote).to be true
+    end
+
+    it 'accepts source option' do
+      cli.options = { company: 'NewCo', source: 'LinkedIn' }
+      cli.add
+      expect(JobApplication.last.source).to eq('LinkedIn')
+    end
+
+    it 'accepts url option' do
+      cli.options = { company: 'NewCo', url: 'https://example.com/job/123' }
+      cli.add
+      expect(JobApplication.last.job_posting_url).to eq('https://example.com/job/123')
+    end
+
+    it 'accepts notes option' do
+      cli.options = { company: 'NewCo', notes: 'Great company culture' }
+      cli.add
+      expect(JobApplication.last.notes).to eq('Great company culture')
+    end
   end
 
   describe '#statuses' do
+    it 'shows help with --help' do
+      cli.options = { help: true }
+      expect { cli.statuses }.to output(/Usage:/i).to_stdout
+    end
+
     it 'lists all valid statuses' do
       expect { cli.statuses }.to output(/cold_call.*applied.*phone_screen.*technical_screen.*onsite.*offer_received.*accepted.*rejected.*withdrawn.*ghosted/m).to_stdout
     end
   end
 
   describe '#status' do
+    it 'shows help with --help' do
+      cli.options = { help: true }
+      expect { cli.status(nil, nil) }.to output(/Usage:/i).to_stdout
+    end
+
     it 'updates the status of an existing application' do
       job = create(:job_application, status: :applied)
       cli.status(job.id, 'phone_screen')
@@ -81,6 +148,11 @@ RSpec.describe JobTracker::CLI do
   end
 
   describe '#update' do
+    it 'shows help with --help' do
+      cli.options = { help: true }
+      expect { cli.update(nil) }.to output(/Usage:/i).to_stdout
+    end
+
     it 'updates the status of an existing application' do
       job = create(:job_application, status: :applied)
       cli.options = { status: 'phone_screen' }
@@ -96,6 +168,11 @@ RSpec.describe JobTracker::CLI do
   end
 
   describe '#export' do
+    it 'shows help with --help' do
+      cli.options = { help: true }
+      expect { cli.export }.to output(/Usage:/i).to_stdout
+    end
+
     let(:output_path) { Rails.root.join('tmp', 'test_export.csv').to_s }
 
     after { File.delete(output_path) if File.exist?(output_path) }
@@ -141,6 +218,11 @@ RSpec.describe JobTracker::CLI do
   end
 
   describe '#reminders' do
+    it 'shows help with --help' do
+      cli.options = { help: true }
+      expect { cli.reminders }.to output(/Usage:/i).to_stdout
+    end
+
     it 'shows overdue follow-ups' do
       job = create(:job_application, company: 'OverdueInc')
       create(:follow_up, job_application: job, due_date: 3.days.ago, completed: false,

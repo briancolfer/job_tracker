@@ -6,9 +6,12 @@ module JobTracker
     STATUSES = %w[cold_call applied phone_screen technical_screen onsite offer_received accepted rejected withdrawn ghosted].freeze
 
     desc 'list', 'List all job applications'
+    method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
     method_option :status, aliases: '-s', desc: 'Filter by status'
     method_option :active, aliases: '-a', type: :boolean, desc: 'Show only active applications'
     def list
+      return help('list') if options[:help]
+
       applications = JobApplication.order(apply_date: :desc)
       applications = applications.where(status: options[:status]) if options[:status]
       applications = applications.active if options[:active]
@@ -26,7 +29,10 @@ module JobTracker
     end
 
     desc 'show ID', 'Show details for a job application'
-    def show(id)
+    method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
+    def show(id = nil)
+      return help('show') if options[:help]
+
       job = JobApplication.find_by(id: id)
       unless job
         puts "Job application ##{id} not found."
@@ -68,22 +74,27 @@ module JobTracker
     end
 
     desc 'add', 'Add a new job application'
+    method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
     method_option :company, aliases: '-c', required: true, desc: 'Company name'
     method_option :apply_date, aliases: '-d', default: Date.today.to_s, desc: 'Application date (YYYY-MM-DD)'
     method_option :role, aliases: '-r', desc: 'Role title'
     method_option :job_type, aliases: '-t', desc: 'Job type (e.g. DevOps, SRE)'
     method_option :location, aliases: '-l', desc: 'Location'
+    method_option :remote, type: :boolean, desc: 'Is remote position?'
     method_option :source, aliases: '-S', desc: 'Source (e.g. LinkedIn, Indeed)'
     method_option :status, aliases: '-s', default: 'applied', desc: "Status (#{STATUSES.join(', ')})"
     method_option :url, aliases: '-u', desc: 'Job posting URL'
     method_option :notes, aliases: '-n', desc: 'Notes'
     def add
+      return help('add') if options[:help]
+
       job = JobApplication.new(
         company: options[:company],
         apply_date: options[:apply_date] || Date.today.to_s,
         role_title: options[:role],
         job_type: options[:job_type],
         location: options[:location],
+        remote: options[:remote],
         source: options[:source],
         status: options[:status],
         job_posting_url: options[:url],
@@ -98,13 +109,19 @@ module JobTracker
     end
 
     desc 'statuses', 'List all valid job application statuses'
+    method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
     def statuses
+      return help('statuses') if options[:help]
+
       puts 'Valid statuses:'
       STATUSES.each { |s| puts "  #{s}" }
     end
 
     desc 'status ID NEW_STATUS', "Update the status of a job application (#{STATUSES.join(', ')})"
-    def status(id, new_status)
+    method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
+    def status(id = nil, new_status = nil)
+      return help('status') if options[:help]
+
       job = JobApplication.find_by(id: id)
       unless job
         puts "Job application ##{id} not found."
@@ -124,11 +141,14 @@ module JobTracker
     end
 
     desc 'update ID', 'Update a job application'
+    method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
     method_option :status, aliases: '-s', desc: "New status (#{STATUSES.join(', ')})"
     method_option :role, aliases: '-r', desc: 'Role title'
     method_option :notes, aliases: '-n', desc: 'Notes'
     method_option :url, aliases: '-u', desc: 'Job posting URL'
-    def update(id)
+    def update(id = nil)
+      return help('update') if options[:help]
+
       job = JobApplication.find_by(id: id)
       unless job
         puts "Job application ##{id} not found."
@@ -149,9 +169,12 @@ module JobTracker
     end
 
     desc 'export', 'Export all job applications to CSV'
+    method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
     method_option :output, aliases: '-o', desc: 'Output file path (default: tmp/job_applications_<date>.csv)'
     method_option :status, aliases: '-s', desc: 'Filter by status'
     def export
+      return help('export') if options[:help]
+
       default_path = Rails.root.join('tmp', "job_applications_#{Date.today}.csv").to_s
       path = options[:output] || default_path
 
@@ -181,7 +204,10 @@ module JobTracker
     end
 
     desc 'reminders', 'Show overdue and upcoming follow-ups'
+    method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
     def reminders
+      return help('reminders') if options[:help]
+
       overdue = FollowUp.overdue.includes(:job_application).order(:due_date)
       due_today = FollowUp.due_today.includes(:job_application).order(:due_date)
 
