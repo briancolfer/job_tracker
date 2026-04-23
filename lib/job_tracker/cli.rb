@@ -11,6 +11,7 @@ module JobTracker
     method_option :active, aliases: "-a", type: :boolean, desc: "Show only active applications"
     method_option :after, aliases: "-A", type: :string, desc: "Show applications on or after this date (YYYY-MM-DD)"
     method_option :before, aliases: "-B", type: :string, desc: "Show applications on or before this date (YYYY-MM-DD)"
+    method_option :source, aliases: "-S", type: :string, desc: "Filter by source (e.g. Indeed, LinkedIn)"
     def list
       return help("list") if options[:help]
 
@@ -23,6 +24,7 @@ module JobTracker
       applications = applications.active if options[:active]
       applications = applications.applied_after(after_date) if after_date
       applications = applications.applied_before(before_date) if before_date
+      applications = applications.where(source: options[:source]) if options[:source]
 
       if applications.empty?
         puts "No job applications found."
@@ -165,6 +167,7 @@ module JobTracker
     method_option :role, aliases: "-r", desc: "Role title"
     method_option :notes, aliases: "-n", desc: "Notes"
     method_option :url, aliases: "-u", desc: "Job posting URL"
+    method_option :source, aliases: "-S", desc: "Source (e.g. LinkedIn, Indeed)"
     def update(id = nil)
       return help("update") if options[:help]
 
@@ -179,6 +182,7 @@ module JobTracker
       attrs[:role_title] = options[:role] if options[:role]
       attrs[:notes] = options[:notes] if options[:notes]
       attrs[:job_posting_url] = options[:url] if options[:url]
+      attrs[:source] = options[:source] if options[:source]
 
       if job.update(attrs)
         puts "Updated job application ##{job.id}: #{job.company} (#{job.status})"

@@ -77,6 +77,14 @@ RSpec.describe JobTracker::CLI do
       cli.options = { before: 'not-a-date' }
       expect { cli.list }.to output(/invalid date/i).to_stdout
     end
+
+    it 'filters by --source' do
+      create(:job_application, company: 'IndeedCo', source: 'Indeed')
+      create(:job_application, company: 'LinkedInCo', source: 'LinkedIn')
+      cli.options = { source: 'Indeed' }
+      expect { cli.list }.to output(/IndeedCo/).to_stdout
+      expect { cli.list }.not_to output(/LinkedInCo/).to_stdout
+    end
   end
 
   describe '#show' do
@@ -245,6 +253,13 @@ RSpec.describe JobTracker::CLI do
       job = create(:job_application, status: :applied)
       cli.options = { status: 'rejected' }
       expect { cli.update(job.id) }.to output(/updated/i).to_stdout
+    end
+
+    it 'updates source of an existing application' do
+      job = create(:job_application, source: 'LinkedIn')
+      cli.options = { source: 'Indeed' }
+      cli.update(job.id)
+      expect(job.reload.source).to eq('Indeed')
     end
   end
 
