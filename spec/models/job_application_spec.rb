@@ -65,5 +65,33 @@ RSpec.describe JobApplication, type: :model do
       expect(JobApplication.terminal).to include(terminal)
       expect(JobApplication.terminal).not_to include(active)
     end
+
+    it 'applied_after returns applications on or after a given date' do
+      old_job = create(:job_application, apply_date: '2026-01-01')
+      new_job = create(:job_application, apply_date: '2026-03-01')
+      results = JobApplication.applied_after('2026-02-01')
+      expect(results).to include(new_job)
+      expect(results).not_to include(old_job)
+    end
+
+    it 'applied_before returns applications on or before a given date' do
+      old_job = create(:job_application, apply_date: '2026-01-01')
+      new_job = create(:job_application, apply_date: '2026-03-01')
+      results = JobApplication.applied_before('2026-02-01')
+      expect(results).to include(old_job)
+      expect(results).not_to include(new_job)
+    end
+
+    it 'applied_after includes applications on the boundary date' do
+      boundary_job = create(:job_application, apply_date: '2026-02-01')
+      results = JobApplication.applied_after('2026-02-01')
+      expect(results).to include(boundary_job)
+    end
+
+    it 'applied_before includes applications on the boundary date' do
+      boundary_job = create(:job_application, apply_date: '2026-02-01')
+      results = JobApplication.applied_before('2026-02-01')
+      expect(results).to include(boundary_job)
+    end
   end
 end

@@ -41,6 +41,42 @@ RSpec.describe JobTracker::CLI do
       expect { cli.list }.to output(/PhoneCo/).to_stdout
       expect { cli.list }.not_to output(/RejectedCo/).to_stdout
     end
+
+    it 'filters by --after date (greater than or equal)' do
+      create(:job_application, company: 'OldCo', apply_date: '2026-01-01')
+      create(:job_application, company: 'NewCo', apply_date: '2026-04-01')
+      cli.options = { after: '2026-02-01' }
+      expect { cli.list }.to output(/NewCo/).to_stdout
+      expect { cli.list }.not_to output(/OldCo/).to_stdout
+    end
+
+    it 'filters by --before date (less than or equal)' do
+      create(:job_application, company: 'OldCo', apply_date: '2026-01-01')
+      create(:job_application, company: 'NewCo', apply_date: '2026-04-01')
+      cli.options = { before: '2026-02-01' }
+      expect { cli.list }.to output(/OldCo/).to_stdout
+      expect { cli.list }.not_to output(/NewCo/).to_stdout
+    end
+
+    it 'filters by a date range using --after and --before together' do
+      create(:job_application, company: 'TooOldCo', apply_date: '2026-01-01')
+      create(:job_application, company: 'InRangeCo', apply_date: '2026-03-01')
+      create(:job_application, company: 'TooNewCo', apply_date: '2026-05-01')
+      cli.options = { after: '2026-02-01', before: '2026-04-01' }
+      expect { cli.list }.to output(/InRangeCo/).to_stdout
+      expect { cli.list }.not_to output(/TooOldCo/).to_stdout
+      expect { cli.list }.not_to output(/TooNewCo/).to_stdout
+    end
+
+    it 'shows an error for an invalid --after date' do
+      cli.options = { after: 'not-a-date' }
+      expect { cli.list }.to output(/invalid date/i).to_stdout
+    end
+
+    it 'shows an error for an invalid --before date' do
+      cli.options = { before: 'not-a-date' }
+      expect { cli.list }.to output(/invalid date/i).to_stdout
+    end
   end
 
   describe '#show' do
