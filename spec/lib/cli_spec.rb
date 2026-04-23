@@ -27,7 +27,7 @@ RSpec.describe JobTracker::CLI do
     it 'filters by a single status' do
       create(:job_application, company: 'AppliedCo', status: :applied)
       create(:job_application, company: 'RejectedCo', status: :rejected)
-      cli.options = { status: ['applied'] }
+      cli.options = { status: [ 'applied' ] }
       expect { cli.list }.to output(/AppliedCo/).to_stdout
       expect { cli.list }.not_to output(/RejectedCo/).to_stdout
     end

@@ -23,6 +23,6 @@ class JobApplication < ApplicationRecord
 
   scope :active, -> { where.not(status: TERMINAL_STATUSES.map { |s| statuses[s] }) }
   scope :terminal, -> { where(status: TERMINAL_STATUSES.map { |s| statuses[s] }) }
-  scope :applied_after, ->(date) { where('apply_date >= ?', date) }
-  scope :applied_before, ->(date) { where('apply_date <= ?', date) }
+  scope :applied_after, ->(date) { where("apply_date >= ?", date) }
+  scope :applied_before, ->(date) { where("apply_date <= ?", date) }
 end
