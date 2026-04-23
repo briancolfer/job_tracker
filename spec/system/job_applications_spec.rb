@@ -56,7 +56,7 @@ RSpec.describe "Job Applications dashboard", type: :system do
 
       it "lists applications in reverse chronological order" do
         companies = page.all("tbody tr").map { |row| row.find("td:first-child").text }
-        expect(companies).to eq(["Acme Corp", "Globex"])
+        expect(companies).to eq([ "Acme Corp", "Globex" ])
       end
     end
   end
