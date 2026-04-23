@@ -7,7 +7,7 @@ module JobTracker
 
     desc 'list', 'List all job applications'
     method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
-    method_option :status, aliases: '-s', desc: 'Filter by status'
+    method_option :status, aliases: '-s', type: :array, desc: 'Filter by one or more statuses (e.g. --status applied phone_screen)'
     method_option :active, aliases: '-a', type: :boolean, desc: 'Show only active applications'
     def list
       return help('list') if options[:help]
@@ -75,7 +75,7 @@ module JobTracker
 
     desc 'add', 'Add a new job application'
     method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
-    method_option :company, aliases: '-c', required: true, desc: 'Company name'
+    method_option :company, aliases: '-c', desc: 'Company name'
     method_option :apply_date, aliases: '-d', default: Date.today.to_s, desc: 'Application date (YYYY-MM-DD)'
     method_option :role, aliases: '-r', desc: 'Role title'
     method_option :job_type, aliases: '-t', desc: 'Job type (e.g. DevOps, SRE)'
@@ -88,6 +88,17 @@ module JobTracker
     def add
       return help('add') if options[:help]
 
+      unless options[:company].present?
+        puts 'Error: company is required (-c COMPANY)'
+        return
+      end
+
+      status = options[:status] || 'applied'
+      unless STATUSES.include?(status)
+        puts "Invalid status '#{status}'. Valid statuses: #{STATUSES.join(', ')}"
+        return
+      end
+
       job = JobApplication.new(
         company: options[:company],
         apply_date: options[:apply_date] || Date.today.to_s,
@@ -96,7 +107,7 @@ module JobTracker
         location: options[:location],
         remote: options[:remote],
         source: options[:source],
-        status: options[:status],
+        status: status,
         job_posting_url: options[:url],
         notes: options[:notes]
       )

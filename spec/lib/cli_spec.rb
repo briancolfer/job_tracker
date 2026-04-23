@@ -23,6 +23,24 @@ RSpec.describe JobTracker::CLI do
     it 'displays a message when no applications exist' do
       expect { cli.list }.to output(/No job applications found/).to_stdout
     end
+
+    it 'filters by a single status' do
+      create(:job_application, company: 'AppliedCo', status: :applied)
+      create(:job_application, company: 'RejectedCo', status: :rejected)
+      cli.options = { status: ['applied'] }
+      expect { cli.list }.to output(/AppliedCo/).to_stdout
+      expect { cli.list }.not_to output(/RejectedCo/).to_stdout
+    end
+
+    it 'filters by multiple statuses' do
+      create(:job_application, company: 'AppliedCo', status: :applied)
+      create(:job_application, company: 'PhoneCo', status: :phone_screen)
+      create(:job_application, company: 'RejectedCo', status: :rejected)
+      cli.options = { status: %w[applied phone_screen] }
+      expect { cli.list }.to output(/AppliedCo/).to_stdout
+      expect { cli.list }.to output(/PhoneCo/).to_stdout
+      expect { cli.list }.not_to output(/RejectedCo/).to_stdout
+    end
   end
 
   describe '#show' do
@@ -46,6 +64,11 @@ RSpec.describe JobTracker::CLI do
     it 'shows help with --help' do
       cli.options = { help: true }
       expect { cli.add }.to output(/Usage:/i).to_stdout
+    end
+
+    it 'shows an error when company is not provided' do
+      cli.options = {}
+      expect { cli.add }.to output(/company is required/i).to_stdout
     end
 
     it 'creates a new job application' do
@@ -106,6 +129,28 @@ RSpec.describe JobTracker::CLI do
       cli.options = { company: 'NewCo', notes: 'Great company culture' }
       cli.add
       expect(JobApplication.last.notes).to eq('Great company culture')
+    end
+
+    it 'accepts a non-default status option' do
+      cli.options = { company: 'NewCo', status: 'phone_screen' }
+      cli.add
+      expect(JobApplication.last.status).to eq('phone_screen')
+    end
+
+    it 'defaults status to applied when not provided' do
+      cli.options = { company: 'NewCo' }
+      cli.add
+      expect(JobApplication.last.status).to eq('applied')
+    end
+
+    it 'shows an error for an invalid status' do
+      cli.options = { company: 'NewCo', status: 'interviewed' }
+      expect { cli.add }.to output(/invalid status/i).to_stdout
+    end
+
+    it 'does not create a record when status is invalid' do
+      cli.options = { company: 'NewCo', status: 'interviewed' }
+      expect { cli.add }.not_to change(JobApplication, :count)
     end
   end
 
