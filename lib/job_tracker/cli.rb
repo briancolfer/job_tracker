@@ -9,12 +9,20 @@ module JobTracker
     method_option :help, aliases: '-h', type: :boolean, desc: 'Show help for this command'
     method_option :status, aliases: '-s', type: :array, desc: 'Filter by one or more statuses (e.g. --status applied phone_screen)'
     method_option :active, aliases: '-a', type: :boolean, desc: 'Show only active applications'
+    method_option :after, aliases: '-A', type: :string, desc: 'Show applications on or after this date (YYYY-MM-DD)'
+    method_option :before, aliases: '-B', type: :string, desc: 'Show applications on or before this date (YYYY-MM-DD)'
     def list
       return help('list') if options[:help]
+
+      after_date  = parse_date_option(:after)
+      before_date = parse_date_option(:before)
+      return if after_date == :invalid || before_date == :invalid
 
       applications = JobApplication.order(apply_date: :desc)
       applications = applications.where(status: options[:status]) if options[:status]
       applications = applications.active if options[:active]
+      applications = applications.applied_after(after_date) if after_date
+      applications = applications.applied_before(before_date) if before_date
 
       if applications.empty?
         puts 'No job applications found.'
@@ -243,6 +251,15 @@ module JobTracker
     end
 
     private
+
+    def parse_date_option(key)
+      return nil unless options[key]
+
+      Date.parse(options[key])
+    rescue ArgumentError
+      puts "Error: invalid date for --#{key}: '#{options[key]}'. Use YYYY-MM-DD format."
+      :invalid
+    end
 
     def format_row(*cols)
       format('%-6s %-25s %-20s %-18s %-12s', *cols.map(&:to_s))
