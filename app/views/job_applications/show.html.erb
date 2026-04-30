@@ -1,0 +1,121 @@
+<div class="mb-4">
+  <%= link_to "← All Applications", job_applications_path, class: "text-sm text-indigo-600 hover:underline" %>
+</div>
+
+<div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900"><%= @job_application.company %></h1>
+      <p class="text-gray-600 mt-0.5"><%= @job_application.role_title %></p>
+    </div>
+    <span class="<%= status_badge_class(@job_application.status) %> px-3 py-1 rounded-full text-sm font-medium">
+      <%= @job_application.status %>
+    </span>
+  </div>
+
+  <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+    <div>
+      <dt class="font-medium text-gray-500">Job Type</dt>
+      <dd class="text-gray-900"><%= @job_application.job_type.presence || "—" %></dd>
+    </div>
+    <div>
+      <dt class="font-medium text-gray-500">Location</dt>
+      <dd class="text-gray-900"><%= @job_application.location.presence || "—" %></dd>
+    </div>
+    <div>
+      <dt class="font-medium text-gray-500">Arrangement</dt>
+      <dd class="text-gray-900"><%= @job_application.arrangement_label %></dd>
+    </div>
+    <div>
+      <dt class="font-medium text-gray-500">Source</dt>
+      <dd class="text-gray-900"><%= @job_application.source.presence || "—" %></dd>
+    </div>
+    <div>
+      <dt class="font-medium text-gray-500">Applied</dt>
+      <dd class="text-gray-900"><%= @job_application.apply_date %></dd>
+    </div>
+    <div>
+      <dt class="font-medium text-gray-500">Job Posting</dt>
+      <dd class="text-gray-900">
+        <% if @job_application.job_posting_url.present? %>
+          <%= link_to "View posting", @job_application.job_posting_url,
+                target: "_blank", rel: "noopener",
+                class: "text-indigo-600 hover:underline" %>
+        <% else %>
+          —
+        <% end %>
+      </dd>
+    </div>
+    <% if @job_application.notes.present? %>
+      <div class="col-span-2">
+        <dt class="font-medium text-gray-500">Notes</dt>
+        <dd class="text-gray-900 whitespace-pre-wrap"><%= @job_application.notes %></dd>
+      </div>
+    <% end %>
+  </dl>
+
+  <div class="mt-6 flex items-center gap-4 border-t border-gray-100 pt-4">
+    <%= link_to "Edit", edit_job_application_path(@job_application),
+          class: "text-sm text-indigo-600 hover:underline" %>
+    <%= button_to "Delete", job_application_path(@job_application),
+          method: :delete,
+          data: { turbo_confirm: "Delete this application?" },
+          class: "text-sm text-red-600 hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
+  </div>
+</div>
+
+<% if @job_application.interview_stages.any? %>
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Interview Stages</h2>
+    <ul class="divide-y divide-gray-100 text-sm">
+      <% @job_application.interview_stages.order(created_at: :asc).each do |stage| %>
+        <li class="py-3 flex items-center gap-4">
+          <span class="font-medium text-gray-800"><%= stage.stage_type %></span>
+          <span class="text-gray-500"><%= stage.outcome %></span>
+          <% if stage.scheduled_at %>
+            <span class="text-gray-400 ml-auto"><%= stage.scheduled_at.strftime("%Y-%m-%d") %></span>
+          <% end %>
+          <% if stage.notes.present? %>
+            <p class="text-gray-600 mt-1 w-full"><%= stage.notes %></p>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<% if @job_application.contacts.any? %>
+  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Contacts</h2>
+    <ul class="divide-y divide-gray-100 text-sm">
+      <% @job_application.contacts.each do |contact| %>
+        <li class="py-3">
+          <span class="font-medium text-gray-800"><%= contact.name %></span>
+          <span class="text-gray-500 ml-2">(<%= contact.role %>)</span>
+          <% if contact.email.present? %>
+            &mdash; <%= mail_to contact.email, contact.email, class: "text-indigo-600 hover:underline" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<% pending_follow_ups = @job_application.follow_ups.pending.order(:due_date) %>
+<% if pending_follow_ups.any? %>
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Pending Follow-ups</h2>
+    <ul class="divide-y divide-gray-100 text-sm">
+      <% pending_follow_ups.each do |fu| %>
+        <% overdue = fu.due_date < Date.today %>
+        <li class="py-3 flex items-center gap-3">
+          <span class="<%= overdue ? 'text-red-600 font-medium' : 'text-gray-500' %>">
+            <%= fu.due_date %>
+            <% if overdue %> [OVERDUE]<% end %>
+          </span>
+          <span class="text-gray-800"><%= fu.description %></span>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

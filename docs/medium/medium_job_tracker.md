@@ -50,6 +50,144 @@ In the rest of this article, I’ll walk through:
 - Why I chose a web + CLI hybrid approach  
 - Tradeoffs I made (and what I intentionally avoided)  
 - How to run the application locally  
+- How to integrate with the cli
+
+
+## Design Decisions
+
+This project is intentionally simple, but that simplicity comes from a series of deliberate decisions.
+
+### Local-First by Default
+
+I chose to keep this application local-first.
+
+That means:
+- No user accounts
+- No remote database
+- No dependency on external services
+
+This reduces friction for users and keeps the system easy to understand and maintain.
+
+It also aligns with the idea that a job search is personal. Your data stays with you.
+
+---
+
+### Web + Command Line Interface
+
+Most tools choose one interface. This project supports both.
+
+The web interface provides:
+- A clear, visual way to review and manage applications
+- A familiar experience for most users
+
+The command line interface provides:
+- Fast data entry
+- Scriptable workflows
+- The ability to interact with the system without context switching
+
+This combination allows different interaction styles without adding significant complexity to the core system.
+
+---
+
+### Focused Data Model
+
+The application centers around a small number of concepts:
+- Job application
+- Status
+- Notes
+
+Rather than trying to model every possible aspect of a job search, the goal is to support the most common workflows well.
+
+This keeps the system flexible without becoming complex.
+
+---
+
+### Minimal Dependencies
+
+The application avoids unnecessary dependencies and external integrations.
+
+This makes it:
+- Easier to install
+- Easier to debug
+- Easier to evolve
+
+It also reduces long-term maintenance overhead.
+
+---
+
+## Tradeoffs
+
+Every decision in this project comes with tradeoffs.
+
+### No SaaS (for now)
+
+By not building this as a SaaS application:
+
+**Pros:**
+- Full control over data
+- No authentication complexity
+- Faster development and iteration
+
+**Cons:**
+- No access from multiple devices
+- No centralized updates
+- No built-in sharing
+
+This is an intentional constraint, not a limitation.
+
+---
+
+### Limited Feature Set
+
+This application does not attempt to cover every possible feature:
+- No automated job imports
+- No integrations with job boards
+- No notifications or reminders
+
+The goal is to avoid feature creep and focus on a clean, reliable core.
+
+---
+
+### CLI as a First-Class Interface
+
+Supporting a CLI adds complexity:
+- Requires a stable interface
+- Requires documentation
+- Adds another surface area to maintain
+
+However, it provides a significant benefit for users who prefer fast, direct interaction.
+
+---
+
+## Running the Application
+
+The application is designed to be easy to run locally.
+
+### Using Docker
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -v job_tracker_data:/app/storage \
+  your-image:latest
+```
+
+This approach:
+- Avoids local Ruby and Rails setup
+- Keeps the data on your local drive
+- Works with either docker or podman
+
+### Local Setup
+
+For those who prefer to run the application locally without containers:
+
+```bash
+bundle install
+bin/rails db:prepare
+bin/rails server
+```
+Then visit:
+
 
 ---
 

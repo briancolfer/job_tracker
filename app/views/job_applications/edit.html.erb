@@ -1,0 +1,8 @@
+<div class="mb-4">
+  <%= link_to "← #{@job_application.company}", job_application_path(@job_application), class: "text-sm text-indigo-600 hover:underline" %>
+</div>
+
+<div class="bg-white rounded-lg border border-gray-200 p-6 max-w-3xl">
+  <h1 class="text-xl font-bold text-gray-900 mb-6">Edit — <%= @job_application.company %></h1>
+  <%= render "form", job_application: @job_application %>
+</div>
