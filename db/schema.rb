@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_24_214854) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_30_002845) do
   create_table "contacts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
@@ -50,11 +50,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_214854) do
     t.date "apply_date"
     t.string "company"
     t.datetime "created_at", null: false
+    t.integer "days_in_office"
     t.string "job_posting_url"
     t.string "job_type"
     t.string "location"
     t.text "notes"
-    t.boolean "remote"
     t.string "role_title"
     t.string "source"
     t.integer "status"

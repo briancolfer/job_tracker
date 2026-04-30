@@ -51,6 +51,102 @@ RSpec.describe JobApplication, type: :model do
     end
   end
 
+  describe 'days_in_office' do
+    describe 'validation' do
+      it 'is valid when nil (unknown arrangement)' do
+        job = build(:job_application, days_in_office: nil)
+        expect(job).to be_valid
+      end
+
+      (0..5).each do |n|
+        it "is valid with days_in_office: #{n}" do
+          job = build(:job_application, days_in_office: n)
+          expect(job).to be_valid
+        end
+      end
+
+      it 'is invalid when days_in_office is below 0' do
+        job = build(:job_application, days_in_office: -1)
+        expect(job).not_to be_valid
+        expect(job.errors[:days_in_office]).to be_present
+      end
+
+      it 'is invalid when days_in_office is above 5' do
+        job = build(:job_application, days_in_office: 6)
+        expect(job).not_to be_valid
+        expect(job.errors[:days_in_office]).to be_present
+      end
+    end
+
+    describe '#remote?' do
+      it 'returns true when days_in_office is 0' do
+        expect(build(:job_application, days_in_office: 0).remote?).to be true
+      end
+
+      it 'returns false when days_in_office is not 0' do
+        expect(build(:job_application, days_in_office: 3).remote?).to be false
+      end
+
+      it 'returns false when days_in_office is nil' do
+        expect(build(:job_application, days_in_office: nil).remote?).to be false
+      end
+    end
+
+    describe '#hybrid?' do
+      it 'returns true when days_in_office is between 1 and 4' do
+        (1..4).each do |n|
+          expect(build(:job_application, days_in_office: n).hybrid?).to be true
+        end
+      end
+
+      it 'returns false when days_in_office is 0' do
+        expect(build(:job_application, days_in_office: 0).hybrid?).to be false
+      end
+
+      it 'returns false when days_in_office is 5' do
+        expect(build(:job_application, days_in_office: 5).hybrid?).to be false
+      end
+
+      it 'returns false when days_in_office is nil' do
+        expect(build(:job_application, days_in_office: nil).hybrid?).to be false
+      end
+    end
+
+    describe '#onsite?' do
+      it 'returns true when days_in_office is 5' do
+        expect(build(:job_application, days_in_office: 5).onsite?).to be true
+      end
+
+      it 'returns false when days_in_office is not 5' do
+        expect(build(:job_application, days_in_office: 3).onsite?).to be false
+      end
+
+      it 'returns false when days_in_office is nil' do
+        expect(build(:job_application, days_in_office: nil).onsite?).to be false
+      end
+    end
+
+    describe '#arrangement_label' do
+      it 'returns "Remote" when days_in_office is 0' do
+        expect(build(:job_application, days_in_office: 0).arrangement_label).to eq('Remote')
+      end
+
+      it 'returns "Hybrid (N days/week)" when days_in_office is 1-4' do
+        (1..4).each do |n|
+          expect(build(:job_application, days_in_office: n).arrangement_label).to eq("Hybrid (#{n} days/week)")
+        end
+      end
+
+      it 'returns "On-site (5 days/week)" when days_in_office is 5' do
+        expect(build(:job_application, days_in_office: 5).arrangement_label).to eq('On-site (5 days/week)')
+      end
+
+      it 'returns "Unknown" when days_in_office is nil' do
+        expect(build(:job_application, days_in_office: nil).arrangement_label).to eq('Unknown')
+      end
+    end
+  end
+
   describe 'scopes' do
     it 'returns active applications (not rejected/withdrawn/ghosted)' do
       active = create(:job_application, status: :applied)
