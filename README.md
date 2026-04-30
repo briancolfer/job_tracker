@@ -1,6 +1,7 @@
 # Job Tracker
 
-A CLI-first Rails application for tracking job applications through the hiring pipeline.
+A Rails application for tracking job applications through the hiring pipeline.
+Supports both a **CLI** (`bin/jt`) for local use and a **Web UI** for remote access via browser.
 
 ## Requirements
 
@@ -35,7 +36,9 @@ bin/jt add -c "Acme Corp" -r "DevOps Engineer" -S "Indeed" -d 2026-04-23
 | `--role` | `-r` | Role title |
 | `--job_type` | `-t` | Job type (e.g. Full-time, Contract) |
 | `--location` | `-l` | Location |
-| `--remote` | | Remote position flag |
+| `--remote` | | Remote position (sets days_in_office: 0) |
+| `--onsite` | | On-site position (sets days_in_office: 5) |
+| `--hybrid N` | | Hybrid, N days in office per week 0–5 |
 | `--source` | `-S` | Where you found the job (e.g. LinkedIn, Indeed, recruiter, company website) |
 | `--status` | `-s` | Initial status (default: `applied`) |
 | `--apply_date` | `-d` | Application date in `YYYY-MM-DD` (default: today) |
@@ -108,7 +111,7 @@ bin/jt export --output ~/Desktop/jobs.csv
 bin/jt export --status applied
 ```
 
-Exported columns: `id`, `company`, `role_title`, `job_type`, `location`, `remote`, `source`, `status`, `apply_date`, `job_posting_url`, `notes`.
+Exported columns: `id`, `company`, `role_title`, `job_type`, `location`, `days_in_office`, `source`, `status`, `apply_date`, `job_posting_url`, `notes`.
 
 ### Reminders
 
@@ -134,10 +137,60 @@ Unknown status values default to `applied`. A `source` column is imported as-is.
 RUBYOPT=-W0 bundle exec rspec --no-profile
 ```
 
+## Web UI
+
+A browser-based interface is available for creating, viewing, editing, and deleting
+job applications. It mirrors the data accessible via the CLI.
+
+| Page | URL |
+|------|-----|
+| All applications | `/` or `/job_applications` |
+| Application detail | `/job_applications/:id` |
+| New application | `/job_applications/new` |
+| Edit application | `/job_applications/:id/edit` |
+
+Each detail page also shows read-only interview stages, contacts, and pending follow-ups.
+
 ## Development Server
 
 ```bash
 bin/dev
 ```
 
-Starts the Rails server and Tailwind CSS watcher via Foreman.
+Starts the Rails server (port 3001 by default) and Tailwind CSS watcher via Foreman.
+Open `http://localhost:3001` to use the Web UI locally.
+
+## Remote Access via ngrok
+
+When `bin/dev` is running, you can expose the app to any device using ngrok.
+
+### One-time setup
+
+```bash
+brew install ngrok/ngrok/ngrok
+ngrok config add-authtoken <YOUR_NGROK_TOKEN>   # https://dashboard.ngrok.com
+```
+
+### Starting a session
+
+**Terminal 1 — Rails server**
+```bash
+bin/dev
+```
+
+**Terminal 2 — ngrok tunnel**
+```bash
+script/ngrok_start_up.sh
+```
+
+ngrok prints a public `https://` URL. Open it on any device to access the Web UI remotely.
+To use a different port: `PORT=3000 script/ngrok_start_up.sh`.
+
+### Reserved static domain (optional)
+
+Free ngrok generates a random subdomain each session. To get a stable URL every time,
+reserve a domain in the ngrok dashboard and run:
+
+```bash
+ngrok http --domain=your-name.ngrok-free.app 3001
+```
