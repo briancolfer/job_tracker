@@ -85,6 +85,38 @@ RSpec.describe JobTracker::CLI do
       expect { cli.list }.to output(/IndeedCo/).to_stdout
       expect { cli.list }.not_to output(/LinkedInCo/).to_stdout
     end
+
+    it 'filters by --arrangement remote' do
+      create(:job_application, company: 'RemoteCo', days_in_office: 0)
+      create(:job_application, company: 'OnsiteCo', days_in_office: 5)
+      cli.options = { arrangement: 'remote' }
+      expect { cli.list }.to output(/RemoteCo/).to_stdout
+      expect { cli.list }.not_to output(/OnsiteCo/).to_stdout
+    end
+
+    it 'filters by --arrangement onsite' do
+      create(:job_application, company: 'OnsiteCo', days_in_office: 5)
+      create(:job_application, company: 'RemoteCo', days_in_office: 0)
+      cli.options = { arrangement: 'onsite' }
+      expect { cli.list }.to output(/OnsiteCo/).to_stdout
+      expect { cli.list }.not_to output(/RemoteCo/).to_stdout
+    end
+
+    it 'filters by --arrangement hybrid (matches days 1-4)' do
+      create(:job_application, company: 'HybridCo', days_in_office: 3)
+      create(:job_application, company: 'RemoteCo', days_in_office: 0)
+      cli.options = { arrangement: 'hybrid' }
+      expect { cli.list }.to output(/HybridCo/).to_stdout
+      expect { cli.list }.not_to output(/RemoteCo/).to_stdout
+    end
+
+    it 'filters by --arrangement with a raw integer' do
+      create(:job_application, company: 'ThreeDayCo', days_in_office: 3)
+      create(:job_application, company: 'FourDayCo', days_in_office: 4)
+      cli.options = { arrangement: '3' }
+      expect { cli.list }.to output(/ThreeDayCo/).to_stdout
+      expect { cli.list }.not_to output(/FourDayCo/).to_stdout
+    end
   end
 
   describe '#show' do
@@ -101,6 +133,32 @@ RSpec.describe JobTracker::CLI do
 
     it 'shows an error for unknown id' do
       expect { cli.show(99999) }.to output(/not found/i).to_stdout
+    end
+
+    it 'shows Location line without (remote) annotation' do
+      job = create(:job_application, location: 'Austin, TX', days_in_office: 0)
+      expect { cli.show(job.id) }.to output(/Location:.*Austin, TX/).to_stdout
+      expect { cli.show(job.id) }.not_to output(/\(remote\)/).to_stdout
+    end
+
+    it 'shows Arrangement: Remote when days_in_office is 0' do
+      job = create(:job_application, days_in_office: 0)
+      expect { cli.show(job.id) }.to output(/Arrangement:.*Remote/).to_stdout
+    end
+
+    it 'shows Arrangement: Hybrid (N days/week) when days_in_office is 1-4' do
+      job = create(:job_application, days_in_office: 3)
+      expect { cli.show(job.id) }.to output(/Arrangement:.*Hybrid \(3 days\/week\)/).to_stdout
+    end
+
+    it 'shows Arrangement: On-site (5 days/week) when days_in_office is 5' do
+      job = create(:job_application, days_in_office: 5)
+      expect { cli.show(job.id) }.to output(/Arrangement:.*On-site \(5 days\/week\)/).to_stdout
+    end
+
+    it 'shows Arrangement: Unknown when days_in_office is nil' do
+      job = create(:job_application, days_in_office: nil)
+      expect { cli.show(job.id) }.to output(/Arrangement:.*Unknown/).to_stdout
     end
   end
 
@@ -151,10 +209,60 @@ RSpec.describe JobTracker::CLI do
       expect(JobApplication.last.location).to eq('San Francisco, CA')
     end
 
-    it 'accepts remote flag' do
+    it 'accepts --remote flag and sets days_in_office to 0' do
       cli.options = { company: 'NewCo', remote: true }
       cli.add
-      expect(JobApplication.last.remote).to be true
+      expect(JobApplication.last.days_in_office).to eq(0)
+    end
+
+    it 'accepts --onsite flag and sets days_in_office to 5' do
+      cli.options = { company: 'NewCo', onsite: true }
+      cli.add
+      expect(JobApplication.last.days_in_office).to eq(5)
+    end
+
+    it 'accepts --hybrid N flag and sets days_in_office to N' do
+      cli.options = { company: 'NewCo', hybrid: 3 }
+      cli.add
+      expect(JobApplication.last.days_in_office).to eq(3)
+    end
+
+    it 'treats --hybrid 0 silently as remote (days_in_office: 0)' do
+      cli.options = { company: 'NewCo', hybrid: 0 }
+      cli.add
+      expect(JobApplication.last.days_in_office).to eq(0)
+    end
+
+    it 'treats --hybrid 5 silently as onsite (days_in_office: 5)' do
+      cli.options = { company: 'NewCo', hybrid: 5 }
+      cli.add
+      expect(JobApplication.last.days_in_office).to eq(5)
+    end
+
+    it 'errors when both --remote and --onsite are given' do
+      cli.options = { company: 'NewCo', remote: true, onsite: true }
+      expect { cli.add }.to output(/mutually exclusive/i).to_stdout
+    end
+
+    it 'does not create a record when arrangement flags conflict' do
+      cli.options = { company: 'NewCo', remote: true, onsite: true }
+      expect { cli.add }.not_to change(JobApplication, :count)
+    end
+
+    it 'errors when both --remote and --hybrid are given' do
+      cli.options = { company: 'NewCo', remote: true, hybrid: 3 }
+      expect { cli.add }.to output(/mutually exclusive/i).to_stdout
+    end
+
+    it 'errors when both --onsite and --hybrid are given' do
+      cli.options = { company: 'NewCo', onsite: true, hybrid: 2 }
+      expect { cli.add }.to output(/mutually exclusive/i).to_stdout
+    end
+
+    it 'leaves days_in_office nil when no arrangement flag is given' do
+      cli.options = { company: 'NewCo' }
+      cli.add
+      expect(JobApplication.last.days_in_office).to be_nil
     end
 
     it 'accepts source option' do
@@ -261,6 +369,33 @@ RSpec.describe JobTracker::CLI do
       cli.update(job.id)
       expect(job.reload.source).to eq('Indeed')
     end
+
+    it 'accepts --remote and sets days_in_office to 0' do
+      job = create(:job_application, days_in_office: 3)
+      cli.options = { remote: true }
+      cli.update(job.id)
+      expect(job.reload.days_in_office).to eq(0)
+    end
+
+    it 'accepts --onsite and sets days_in_office to 5' do
+      job = create(:job_application, days_in_office: 3)
+      cli.options = { onsite: true }
+      cli.update(job.id)
+      expect(job.reload.days_in_office).to eq(5)
+    end
+
+    it 'accepts --hybrid N and sets days_in_office to N' do
+      job = create(:job_application, days_in_office: nil)
+      cli.options = { hybrid: 2 }
+      cli.update(job.id)
+      expect(job.reload.days_in_office).to eq(2)
+    end
+
+    it 'errors when multiple arrangement flags are given on update' do
+      job = create(:job_application)
+      cli.options = { remote: true, onsite: true }
+      expect { cli.update(job.id) }.to output(/mutually exclusive/i).to_stdout
+    end
   end
 
   describe '#export' do
@@ -287,6 +422,26 @@ RSpec.describe JobTracker::CLI do
       expect(content).to match(/company/i)
       expect(content).to match(/status/i)
       expect(content).to match(/apply_date/i)
+    end
+
+    it 'exports days_in_office header instead of remote' do
+      cli.options = { output: output_path }
+      cli.export
+      content = File.read(output_path)
+      expect(content).to include('days_in_office')
+      expect(content).not_to include('remote')
+    end
+
+    it 'exports the integer value of days_in_office' do
+      create(:job_application, company: 'RemoteCo', days_in_office: 0)
+      create(:job_application, company: 'HybridCo', days_in_office: 3)
+      create(:job_application, company: 'UnknownCo', days_in_office: nil)
+      cli.options = { output: output_path }
+      cli.export
+      rows = CSV.read(output_path, headers: true)
+      expect(rows.find { |r| r['company'] == 'RemoteCo' }['days_in_office']).to eq('0')
+      expect(rows.find { |r| r['company'] == 'HybridCo' }['days_in_office']).to eq('3')
+      expect(rows.find { |r| r['company'] == 'UnknownCo' }['days_in_office']).to be_nil
     end
 
     it 'includes all job applications' do

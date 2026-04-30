@@ -12,6 +12,7 @@ module JobTracker
     method_option :after, aliases: "-A", type: :string, desc: "Show applications on or after this date (YYYY-MM-DD)"
     method_option :before, aliases: "-B", type: :string, desc: "Show applications on or before this date (YYYY-MM-DD)"
     method_option :source, aliases: "-S", type: :string, desc: "Filter by source (e.g. Indeed, LinkedIn)"
+    method_option :arrangement, type: :string, desc: "Filter by work arrangement (remote, hybrid, onsite, or integer 0-5)"
     def list
       return help("list") if options[:help]
 
@@ -25,6 +26,10 @@ module JobTracker
       applications = applications.applied_after(after_date) if after_date
       applications = applications.applied_before(before_date) if before_date
       applications = applications.where(source: options[:source]) if options[:source]
+      if options[:arrangement]
+        days = arrangement_to_days(options[:arrangement])
+        applications = applications.where(days_in_office: days)
+      end
 
       if applications.empty?
         puts "No job applications found."
@@ -52,7 +57,8 @@ module JobTracker
       puts "\n=== #{job.company} ==="
       puts "  Role:        #{job.role_title}"
       puts "  Type:        #{job.job_type}"
-      puts "  Location:    #{job.location}#{job.remote? ? ' (remote)' : ''}"
+      puts "  Location:    #{job.location}"
+      puts "  Arrangement: #{job.arrangement_label}"
       puts "  Source:      #{job.source}"
       puts "  Status:      #{job.status}"
       puts "  Applied:     #{job.apply_date}"
@@ -90,7 +96,9 @@ module JobTracker
     method_option :role, aliases: "-r", desc: "Role title"
     method_option :job_type, aliases: "-t", desc: "Job type (e.g. DevOps, SRE)"
     method_option :location, aliases: "-l", desc: "Location"
-    method_option :remote, type: :boolean, desc: "Is remote position?"
+    method_option :remote, type: :boolean, desc: "Remote position (sets days_in_office: 0)"
+    method_option :onsite, type: :boolean, desc: "On-site position (sets days_in_office: 5)"
+    method_option :hybrid, type: :numeric, desc: "Hybrid: days in office per week 0-5 (sets days_in_office: N)"
     method_option :source, aliases: "-S", desc: "Source (e.g. LinkedIn, Indeed)"
     method_option :status, aliases: "-s", default: "applied", desc: "Status (#{STATUSES.join(', ')})"
     method_option :url, aliases: "-u", desc: "Job posting URL"
@@ -109,13 +117,16 @@ module JobTracker
         return
       end
 
+      days = resolve_days_in_office
+      return if days == :conflict
+
       job = JobApplication.new(
         company: options[:company],
         apply_date: options[:apply_date] || Date.today.to_s,
         role_title: options[:role],
         job_type: options[:job_type],
         location: options[:location],
-        remote: options[:remote],
+        days_in_office: days,
         source: options[:source],
         status: status,
         job_posting_url: options[:url],
@@ -168,6 +179,9 @@ module JobTracker
     method_option :notes, aliases: "-n", desc: "Notes"
     method_option :url, aliases: "-u", desc: "Job posting URL"
     method_option :source, aliases: "-S", desc: "Source (e.g. LinkedIn, Indeed)"
+    method_option :remote, type: :boolean, desc: "Remote position (sets days_in_office: 0)"
+    method_option :onsite, type: :boolean, desc: "On-site position (sets days_in_office: 5)"
+    method_option :hybrid, type: :numeric, desc: "Hybrid: days in office per week 0-5 (sets days_in_office: N)"
     def update(id = nil)
       return help("update") if options[:help]
 
@@ -177,12 +191,16 @@ module JobTracker
         return
       end
 
+      days = resolve_days_in_office
+      return if days == :conflict
+
       attrs = {}
       attrs[:status] = options[:status] if options[:status]
       attrs[:role_title] = options[:role] if options[:role]
       attrs[:notes] = options[:notes] if options[:notes]
       attrs[:job_posting_url] = options[:url] if options[:url]
       attrs[:source] = options[:source] if options[:source]
+      attrs[:days_in_office] = days unless days.nil?
 
       if job.update(attrs)
         puts "Updated job application ##{job.id}: #{job.company} (#{job.status})"
@@ -205,7 +223,7 @@ module JobTracker
       applications = applications.where(status: options[:status]) if options[:status]
 
       CSV.open(path, "w") do |csv|
-        csv << %w[id company role_title job_type location remote source status apply_date job_posting_url notes]
+        csv << %w[id company role_title job_type location days_in_office source status apply_date job_posting_url notes]
         applications.each do |job|
           csv << [
             job.id,
@@ -213,7 +231,7 @@ module JobTracker
             job.role_title,
             job.job_type,
             job.location,
-            job.remote,
+            job.days_in_office,
             job.source,
             job.status,
             job.apply_date,
@@ -267,6 +285,37 @@ module JobTracker
 
     def format_row(*cols)
       format("%-6s %-25s %-20s %-18s %-12s", *cols.map(&:to_s))
+    end
+
+    def resolve_days_in_office
+      given = [
+        (options[:remote]             ? '--remote' : nil),
+        (options[:onsite]             ? '--onsite' : nil),
+        (!options[:hybrid].nil?       ? '--hybrid' : nil)
+      ].compact
+
+      if given.size > 1
+        puts "Error: #{given.join(', ')} are mutually exclusive. Specify only one work arrangement."
+        return :conflict
+      end
+
+      if options[:remote]
+        0
+      elsif options[:onsite]
+        5
+      elsif !options[:hybrid].nil?
+        options[:hybrid].to_i
+      end
+      # returns nil when no flag given
+    end
+
+    def arrangement_to_days(value)
+      case value.to_s.downcase
+      when 'remote' then [0]
+      when 'onsite' then [5]
+      when 'hybrid' then [1, 2, 3, 4]
+      else [value.to_i]
+      end
     end
   end
 end
