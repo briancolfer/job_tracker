@@ -1,11 +1,14 @@
 require "thor"
 require "csv"
+require "chronic"
+require_relative "date_parser"
 
 module JobTracker
   class CLI < Thor
     STATUSES = %w[cold_call applied phone_screen technical_screen onsite offer_received accepted rejected withdrawn ghosted].freeze
 
     desc "list", "List all job applications"
+
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
     method_option :status, aliases: "-s", type: :array, desc: "Filter by one or more statuses (e.g. --status applied phone_screen)"
     method_option :active, aliases: "-a", type: :boolean, desc: "Show only active applications"
@@ -13,10 +16,11 @@ module JobTracker
     method_option :before, aliases: "-B", type: :string, desc: "Show applications on or before this date (YYYY-MM-DD)"
     method_option :source, aliases: "-S", type: :string, desc: "Filter by source (e.g. Indeed, LinkedIn)"
     method_option :arrangement, type: :string, desc: "Filter by work arrangement (remote, hybrid, onsite, or integer 0-5)"
+
     def list
       return help("list") if options[:help]
 
-      after_date  = parse_date_option(:after)
+      after_date = parse_date_option(:after)
       before_date = parse_date_option(:before)
       return if after_date == :invalid || before_date == :invalid
 
@@ -45,6 +49,7 @@ module JobTracker
 
     desc "show ID", "Show details for a job application"
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
+
     def show(id = nil)
       return help("show") if options[:help]
 
@@ -103,6 +108,7 @@ module JobTracker
     method_option :status, aliases: "-s", default: "applied", desc: "Status (#{STATUSES.join(', ')})"
     method_option :url, aliases: "-u", desc: "Job posting URL"
     method_option :notes, aliases: "-n", desc: "Notes"
+
     def add
       return help("add") if options[:help]
 
@@ -142,6 +148,7 @@ module JobTracker
 
     desc "statuses", "List all valid job application statuses"
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
+
     def statuses
       return help("statuses") if options[:help]
 
@@ -151,6 +158,7 @@ module JobTracker
 
     desc "status ID NEW_STATUS", "Update the status of a job application (#{STATUSES.join(', ')})"
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
+
     def status(id = nil, new_status = nil)
       return help("status") if options[:help]
 
@@ -182,6 +190,7 @@ module JobTracker
     method_option :remote, type: :boolean, desc: "Remote position (sets days_in_office: 0)"
     method_option :onsite, type: :boolean, desc: "On-site position (sets days_in_office: 5)"
     method_option :hybrid, type: :numeric, desc: "Hybrid: days in office per week 0-5 (sets days_in_office: N)"
+
     def update(id = nil)
       return help("update") if options[:help]
 
@@ -213,6 +222,7 @@ module JobTracker
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
     method_option :output, aliases: "-o", desc: "Output file path (default: tmp/job_applications_<date>.csv)"
     method_option :status, aliases: "-s", desc: "Filter by status"
+
     def export
       return help("export") if options[:help]
 
@@ -246,6 +256,7 @@ module JobTracker
 
     desc "reminders", "Show overdue and upcoming follow-ups"
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
+
     def reminders
       return help("reminders") if options[:help]
 
@@ -277,9 +288,11 @@ module JobTracker
     def parse_date_option(key)
       return nil unless options[key]
 
-      Date.parse(options[key])
+      JobTracker::DateParser.parse(options[key])
+
     rescue ArgumentError
-      puts "Error: invalid date for --#{key}: '#{options[key]}'. Use YYYY-MM-DD format."
+      puts "Error: invalid date for --#{key}: '#{options[key]}'"
+      puts "Use YYYY-MM-DD or natural language like '1 week ago'."
       :invalid
     end
 
@@ -289,9 +302,9 @@ module JobTracker
 
     def resolve_days_in_office
       given = [
-        (options[:remote]             ? '--remote' : nil),
-        (options[:onsite]             ? '--onsite' : nil),
-        (!options[:hybrid].nil?       ? '--hybrid' : nil)
+        (options[:remote] ? '--remote' : nil),
+        (options[:onsite] ? '--onsite' : nil),
+        (!options[:hybrid].nil? ? '--hybrid' : nil)
       ].compact
 
       if given.size > 1

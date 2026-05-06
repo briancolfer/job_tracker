@@ -68,6 +68,36 @@ RSpec.describe JobTracker::CLI do
       expect { cli.list }.not_to output(/TooNewCo/).to_stdout
     end
 
+    context 'Natural language date ' do
+
+      it 'parses natural language --after last week' do
+        create(:job_application, company: 'LastWeekCo', apply_date: 8.days.ago)
+        create(:job_application, company: 'ThisWeekCo', apply_date: 3.days.ago)
+        cli.options = { after: 'last week' }
+        expect { cli.list }.to output(/ThisWeekCo/).to_stdout
+        expect { cli.list }.not_to output(/LastWeekCo/).to_stdout
+      end
+
+      it 'parses natural language --before last month' do
+        create(:job_application, company: 'LastMonthCo', apply_date: 40.days.ago)
+        create(:job_application, company: 'ThisMonthCo', apply_date: 10.days.ago)
+        cli.options = { before: 'last month' }
+        expect { cli.list }.to output(/LastMonthCo/).to_stdout
+        expect { cli.list }.not_to output(/ThisMonthCo/).to_stdout
+      end
+
+      it 'parses natural language --after 2 weeks ago --before yesterday' do
+        create(:job_application, company: 'TwoWeeksAgoCo', apply_date: 16.days.ago)
+        create(:job_application, company: 'OneWeekAgoCo', apply_date: 8.days.ago)
+        create(:job_application, company: 'YesterdayCo', apply_date: 1.day.ago)
+        cli.options = { after: '2 weeks ago', before: 'yesterday' }
+        expect { cli.list }.to output(/OneWeekAgoCo/).to_stdout
+        expect { cli.list }.not_to output(/TwoWeeksAgoCo/).to_stdout
+        expect { cli.list }.not_to output(/YesterdayCo/).to_stdout
+      end
+
+    end
+
     it 'shows an error for an invalid --after date' do
       cli.options = { after: 'not-a-date' }
       expect { cli.list }.to output(/invalid date/i).to_stdout
