@@ -89,11 +89,11 @@ RSpec.describe JobTracker::CLI do
       it 'parses natural language --after 2 weeks ago --before yesterday' do
         create(:job_application, company: 'TwoWeeksAgoCo', apply_date: 16.days.ago)
         create(:job_application, company: 'OneWeekAgoCo', apply_date: 8.days.ago)
-        create(:job_application, company: 'YesterdayCo', apply_date: 1.day.ago)
+        create(:job_application, company: 'TodayCo', apply_date: Date.today)
         cli.options = { after: '2 weeks ago', before: 'yesterday' }
         expect { cli.list }.to output(/OneWeekAgoCo/).to_stdout
         expect { cli.list }.not_to output(/TwoWeeksAgoCo/).to_stdout
-        expect { cli.list }.not_to output(/YesterdayCo/).to_stdout
+        expect { cli.list }.not_to output(/TodayCo/).to_stdout
       end
 
     end
@@ -333,6 +333,30 @@ RSpec.describe JobTracker::CLI do
     it 'does not create a record when status is invalid' do
       cli.options = { company: 'NewCo', status: 'interviewed' }
       expect { cli.add }.not_to change(JobApplication, :count)
+    end
+
+    context 'Natural language apply_date' do
+      it 'parses "yesterday" as apply_date' do
+        cli.options = { company: 'NewCo', apply_date: 'yesterday' }
+        cli.add
+        expect(JobApplication.last.apply_date).to eq(Date.yesterday)
+      end
+
+      it 'parses "2 weeks ago" as apply_date' do
+        cli.options = { company: 'NewCo', apply_date: '2 weeks ago' }
+        cli.add
+        expect(JobApplication.last.apply_date).to eq(14.days.ago.to_date)
+      end
+
+      it 'shows an error for an invalid apply_date' do
+        cli.options = { company: 'NewCo', apply_date: 'not-a-date' }
+        expect { cli.add }.to output(/invalid date/i).to_stdout
+      end
+
+      it 'does not create a record when apply_date is invalid' do
+        cli.options = { company: 'NewCo', apply_date: 'not-a-date' }
+        expect { cli.add }.not_to change(JobApplication, :count)
+      end
     end
   end
 

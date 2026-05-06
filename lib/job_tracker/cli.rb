@@ -126,9 +126,12 @@ module JobTracker
       days = resolve_days_in_office
       return if days == :conflict
 
+      apply_date = parse_date_option(:apply_date) || Date.today
+      return if apply_date == :invalid
+
       job = JobApplication.new(
         company: options[:company],
-        apply_date: options[:apply_date] || Date.today.to_s,
+        apply_date: apply_date,
         role_title: options[:role],
         job_type: options[:job_type],
         location: options[:location],
