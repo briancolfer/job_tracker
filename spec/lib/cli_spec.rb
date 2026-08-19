@@ -69,7 +69,6 @@ RSpec.describe JobTracker::CLI do
     end
 
     context 'Natural language date ' do
-
       it 'parses natural language --after last week' do
         create(:job_application, company: 'LastWeekCo', apply_date: 8.days.ago)
         create(:job_application, company: 'ThisWeekCo', apply_date: 3.days.ago)
@@ -89,13 +88,12 @@ RSpec.describe JobTracker::CLI do
       it 'parses natural language --after 2 weeks ago --before yesterday' do
         create(:job_application, company: 'TwoWeeksAgoCo', apply_date: 16.days.ago)
         create(:job_application, company: 'OneWeekAgoCo', apply_date: 8.days.ago)
-        create(:job_application, company: 'TodayCo', apply_date: Date.today)
+        create(:job_application, company: 'TodayCo', apply_date: Date.current)
         cli.options = { after: '2 weeks ago', before: 'yesterday' }
         expect { cli.list }.to output(/OneWeekAgoCo/).to_stdout
         expect { cli.list }.not_to output(/TwoWeeksAgoCo/).to_stdout
         expect { cli.list }.not_to output(/TodayCo/).to_stdout
       end
-
     end
 
     it 'shows an error for an invalid --after date' do

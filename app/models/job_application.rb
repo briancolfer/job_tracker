@@ -36,10 +36,10 @@ class JobApplication < ApplicationRecord
 
   def arrangement_label
     case days_in_office
-    when 0     then 'Remote'
+    when 0     then "Remote"
     when 1..4  then "Hybrid (#{days_in_office} days/week)"
-    when 5     then 'On-site (5 days/week)'
-    else            'Unknown'
+    when 5     then "On-site (5 days/week)"
+    else            "Unknown"
     end
   end
 

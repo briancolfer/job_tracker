@@ -305,9 +305,9 @@ module JobTracker
 
     def resolve_days_in_office
       given = [
-        (options[:remote] ? '--remote' : nil),
-        (options[:onsite] ? '--onsite' : nil),
-        (!options[:hybrid].nil? ? '--hybrid' : nil)
+        (options[:remote] ? "--remote" : nil),
+        (options[:onsite] ? "--onsite" : nil),
+        (!options[:hybrid].nil? ? "--hybrid" : nil)
       ].compact
 
       if given.size > 1
@@ -327,10 +327,10 @@ module JobTracker
 
     def arrangement_to_days(value)
       case value.to_s.downcase
-      when 'remote' then [0]
-      when 'onsite' then [5]
-      when 'hybrid' then [1, 2, 3, 4]
-      else [value.to_i]
+      when "remote" then [ 0 ]
+      when "onsite" then [ 5 ]
+      when "hybrid" then [ 1, 2, 3, 4 ]
+      else [ value.to_i ]
       end
     end
   end

@@ -50,7 +50,7 @@ RSpec.describe JobTracker::DateParser do
       end
 
       it "falls back to Chronic when not ISO" do
-        expect(Chronic).to receive(:parse).with("yesterday").and_call_original
+        expect(Chronic).to receive(:parse).with("yesterday", hash_including(:now)).and_call_original
         described_class.parse("yesterday")
       end
     end

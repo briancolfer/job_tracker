@@ -43,7 +43,7 @@ gem "thruster", require: false
 gem "image_processing", "~> 1.2"
 
 # Date parsing for natural language input (e.g. "next Tuesday")
-# 
+#
 gem "chronic", "~> 0.10"
 
 group :development, :test do
