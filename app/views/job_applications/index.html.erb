@@ -29,6 +29,18 @@
               <span class="<%= status_badge_class(job.status) %> px-2 py-0.5 rounded-full text-xs font-medium">
                 <%= job.status %>
               </span>
+              <%= form_with url: status_job_application_path(job), method: :patch,
+                    scope: :job_application, class: "inline-flex items-center gap-2 ml-2" do |form| %>
+                <%= form.label :status, "Status for #{job.company}",
+                      for: "job_application_#{job.id}_status", class: "sr-only" %>
+                <%= form.select :status,
+                      JobApplication.statuses.keys.map { |status| [ status.humanize, status ] },
+                      { selected: job.status },
+                      id: "job_application_#{job.id}_status",
+                      class: "border border-gray-300 rounded px-2 py-1 text-xs bg-white" %>
+                <%= form.submit "Update #{job.company}",
+                      class: "text-xs text-indigo-600 hover:underline cursor-pointer bg-transparent border-0 p-0" %>
+              <% end %>
             </td>
             <td class="px-4 py-3 text-gray-500"><%= job.apply_date %></td>
             <td class="px-4 py-3 text-right space-x-2">

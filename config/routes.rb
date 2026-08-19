@@ -9,7 +9,16 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
-  resources :job_applications
+  namespace :api do
+    namespace :v1 do
+      get "statuses", to: "job_applications#statuses"
+      resources :job_applications, only: [ :index, :show, :update ]
+    end
+  end
+
+  resources :job_applications do
+    patch :status, on: :member, action: :update_status
+  end
 
   root "job_applications#index"
 end

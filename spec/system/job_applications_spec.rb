@@ -67,6 +67,14 @@ RSpec.describe "Job Applications", type: :system do
         click_link "Acme Corp"
         expect(page).to have_current_path(job_application_path(active_app))
       end
+
+      it "updates an application's status from the list" do
+        select "Phone screen", from: "Status for Acme Corp"
+        click_button "Update Acme Corp"
+
+        expect(page).to have_text("Application status updated.")
+        expect(active_app.reload.status).to eq("phone_screen")
+      end
     end
   end
 

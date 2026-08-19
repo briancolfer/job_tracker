@@ -12,7 +12,7 @@ class JobApplication < ApplicationRecord
     rejected: 7,
     withdrawn: 8,
     ghosted: 9
-  }, default: :applied
+  }, default: :applied, validate: true
 
   has_many :interview_stages, dependent: :destroy
   has_many :contacts, dependent: :destroy

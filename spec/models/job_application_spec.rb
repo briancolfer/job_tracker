@@ -32,6 +32,13 @@ RSpec.describe JobApplication, type: :model do
         expect(job).to be_valid
       end
     end
+
+    it 'reports an invalid status as a validation error' do
+      job = build(:job_application, status: 'not_a_status')
+
+      expect(job).not_to be_valid
+      expect(job.errors[:status]).to include('is not included in the list')
+    end
   end
 
   describe 'associations' do

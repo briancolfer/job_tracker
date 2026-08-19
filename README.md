@@ -150,6 +150,32 @@ job applications. It mirrors the data accessible via the CLI.
 | Edit application | `/job_applications/:id/edit` |
 
 Each detail page also shows read-only interview stages, contacts, and pending follow-ups.
+The applications list includes an inline status selector for fast pipeline updates.
+
+## JSON API
+
+A small versioned API supports read/update integrations:
+
+| Method | URL | Purpose |
+|--------|-----|---------|
+| `GET` | `/api/v1/job_applications` | List applications |
+| `GET` | `/api/v1/job_applications/:id` | Show an application |
+| `PATCH` | `/api/v1/job_applications/:id` | Update an application |
+| `GET` | `/api/v1/statuses` | List valid status values |
+
+Send updates under a `job_application` JSON key:
+
+```bash
+curl --request PATCH http://localhost:3001/api/v1/job_applications/12 \
+  --header 'Content-Type: application/json' \
+  --data '{"job_application":{"status":"phone_screen"}}'
+```
+
+The API has no authentication and is intended for trusted local use. Add authentication
+before exposing it through ngrok or deploying it on a public network.
+
+See [Status Updates and JSON API](docs/status-updates-and-json-api.md) for the
+complete behavior, API contract, status-extension checklist, and limitations.
 
 ## Development Server
 
