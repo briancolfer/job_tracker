@@ -48,3 +48,7 @@ second_round:
   value: 11
   label: Second round
   terminal: false
+on_hold:
+  value: 12
+  label: On hold
+  terminal: false
