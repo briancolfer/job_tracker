@@ -45,8 +45,8 @@ RSpec.describe "Job Applications", type: :system do
       end
 
       it "shows the status for each application" do
-        expect(page).to have_text("applied")
-        expect(page).to have_text("rejected")
+        expect(page).to have_text("Applied")
+        expect(page).to have_text("Rejected")
       end
 
       it "shows the apply date for each application" do
@@ -69,7 +69,7 @@ RSpec.describe "Job Applications", type: :system do
       end
 
       it "updates an application's status from the list" do
-        select "Phone screen", from: "Status for Acme Corp"
+        select "Phone Screen", from: "Status for Acme Corp"
         click_button "Update Acme Corp"
 
         expect(page).to have_text("Application status updated.")
@@ -104,7 +104,7 @@ RSpec.describe "Job Applications", type: :system do
     end
 
     it "shows the status" do
-      expect(page).to have_text("phone_screen")
+      expect(page).to have_text("Phone Screen")
     end
 
     it "shows the arrangement label" do

@@ -48,7 +48,10 @@ module Api
             :id, :company, :role_title, :job_type, :location, :days_in_office,
             :source, :status, :apply_date, :job_posting_url, :notes, :created_at, :updated_at
           ]
-        ).merge("arrangement" => job_application.arrangement_label)
+        ).merge(
+          "arrangement" => job_application.arrangement_label,
+          "status_label" => job_application.status_label
+        )
       end
     end
   end

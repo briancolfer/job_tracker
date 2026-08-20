@@ -27,14 +27,14 @@
             <td class="px-4 py-3 text-gray-700"><%= job.role_title %></td>
             <td class="px-4 py-3">
               <span class="<%= status_badge_class(job.status) %> px-2 py-0.5 rounded-full text-xs font-medium">
-                <%= job.status %>
+                <%= job.status_label %>
               </span>
               <%= form_with url: status_job_application_path(job), method: :patch,
                     scope: :job_application, class: "inline-flex items-center gap-2 ml-2" do |form| %>
                 <%= form.label :status, "Status for #{job.company}",
                       for: "job_application_#{job.id}_status", class: "sr-only" %>
                 <%= form.select :status,
-                      JobApplication.statuses.keys.map { |status| [ status.humanize, status ] },
+                      JobApplication.statuses.keys.map { |code| [ JobTracker::StatusCatalog.label(code), code ] },
                       { selected: job.status },
                       id: "job_application_#{job.id}_status",
                       class: "border border-gray-300 rounded px-2 py-1 text-xs bg-white" %>

@@ -25,7 +25,8 @@ RSpec.describe "API::V1::JobApplications", type: :request do
         "id" => job.id,
         "company" => "Initech",
         "days_in_office" => 3,
-        "arrangement" => "Hybrid (3 days/week)"
+        "arrangement" => "Hybrid (3 days/week)",
+        "status_label" => "Applied"
       )
     end
 

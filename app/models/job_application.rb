@@ -1,18 +1,8 @@
 class JobApplication < ApplicationRecord
-  TERMINAL_STATUSES = %w[rejected withdrawn ghosted].freeze
-
-  enum :status, {
-    cold_call: 0,
-    applied: 1,
-    phone_screen: 2,
-    technical_screen: 3,
-    onsite: 4,
-    offer_received: 5,
-    accepted: 6,
-    rejected: 7,
-    withdrawn: 8,
-    ghosted: 9
-  }, default: :applied, validate: true
+  enum :status,
+    JobTracker::StatusCatalog.enum_mapping,
+    default: JobTracker::StatusCatalog.default_code.to_sym,
+    validate: true
 
   has_many :interview_stages, dependent: :destroy
   has_many :contacts, dependent: :destroy
@@ -43,8 +33,12 @@ class JobApplication < ApplicationRecord
     end
   end
 
-  scope :active, -> { where.not(status: TERMINAL_STATUSES.map { |s| statuses[s] }) }
-  scope :terminal, -> { where(status: TERMINAL_STATUSES.map { |s| statuses[s] }) }
+  def status_label
+    JobTracker::StatusCatalog.label(status)
+  end
+
+  scope :active, -> { where.not(status: JobTracker::StatusCatalog.terminal_codes & statuses.keys) }
+  scope :terminal, -> { where(status: JobTracker::StatusCatalog.terminal_codes & statuses.keys) }
   scope :applied_after, ->(date) { where("apply_date >= ?", date) }
   scope :applied_before, ->(date) { where("apply_date <= ?", date) }
 end

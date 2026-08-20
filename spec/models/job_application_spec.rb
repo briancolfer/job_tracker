@@ -39,6 +39,12 @@ RSpec.describe JobApplication, type: :model do
       expect(job).not_to be_valid
       expect(job.errors[:status]).to include('is not included in the list')
     end
+
+    it 'uses the configured display label' do
+      job = build(:job_application, status: :phone_screen)
+
+      expect(job.status_label).to eq('Phone Screen')
+    end
   end
 
   describe 'associations' do

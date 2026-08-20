@@ -2,11 +2,10 @@ require "thor"
 require "csv"
 require "chronic"
 require_relative "date_parser"
+require_relative "status_catalog"
 
 module JobTracker
   class CLI < Thor
-    STATUSES = %w[cold_call applied phone_screen technical_screen onsite offer_received accepted rejected withdrawn ghosted].freeze
-
     desc "list", "List all job applications"
 
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
@@ -43,7 +42,7 @@ module JobTracker
       puts format_row("ID", "Company", "Role", "Status", "Date")
       puts "-" * 80
       applications.each do |job|
-        puts format_row(job.id, job.company, job.role_title.to_s, job.status, job.apply_date)
+        puts format_row(job.id, job.company, job.role_title.to_s, status_display(job), job.apply_date)
       end
     end
 
@@ -65,7 +64,7 @@ module JobTracker
       puts "  Location:    #{job.location}"
       puts "  Arrangement: #{job.arrangement_label}"
       puts "  Source:      #{job.source}"
-      puts "  Status:      #{job.status}"
+      puts "  Status:      #{status_display(job)}"
       puts "  Applied:     #{job.apply_date}"
       puts "  URL:         #{job.job_posting_url}"
       puts "  Notes:       #{job.notes}" if job.notes.present?
@@ -105,7 +104,7 @@ module JobTracker
     method_option :onsite, type: :boolean, desc: "On-site position (sets days_in_office: 5)"
     method_option :hybrid, type: :numeric, desc: "Hybrid: days in office per week 0-5 (sets days_in_office: N)"
     method_option :source, aliases: "-S", desc: "Source (e.g. LinkedIn, Indeed)"
-    method_option :status, aliases: "-s", default: "applied", desc: "Status (#{STATUSES.join(', ')})"
+    method_option :status, aliases: "-s", default: "applied", desc: "Status code (see `bin/jt statuses`)"
     method_option :url, aliases: "-u", desc: "Job posting URL"
     method_option :notes, aliases: "-n", desc: "Notes"
 
@@ -118,8 +117,8 @@ module JobTracker
       end
 
       status = options[:status] || "applied"
-      unless STATUSES.include?(status)
-        puts "Invalid status '#{status}'. Valid statuses: #{STATUSES.join(', ')}"
+      unless status_codes.include?(status)
+        puts "Invalid status '#{status}'. Valid statuses: #{status_codes.join(', ')}"
         return
       end
 
@@ -156,10 +155,13 @@ module JobTracker
       return help("statuses") if options[:help]
 
       puts "Valid statuses:"
-      STATUSES.each { |s| puts "  #{s}" }
+      JobTracker::StatusCatalog.definitions.each do |code, attributes|
+        terminal = attributes["terminal"] ? " [terminal]" : ""
+        puts "  #{code.ljust(20)} #{attributes.fetch('label')}#{terminal}"
+      end
     end
 
-    desc "status ID NEW_STATUS", "Update the status of a job application (#{STATUSES.join(', ')})"
+    desc "status ID NEW_STATUS", "Update the status code of a job application"
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
 
     def status(id = nil, new_status = nil)
@@ -171,8 +173,8 @@ module JobTracker
         return
       end
 
-      unless STATUSES.include?(new_status)
-        puts "Invalid status '#{new_status}'. Valid statuses: #{STATUSES.join(', ')}"
+      unless status_codes.include?(new_status)
+        puts "Invalid status '#{new_status}'. Valid statuses: #{status_codes.join(', ')}"
         return
       end
 
@@ -185,7 +187,7 @@ module JobTracker
 
     desc "update ID", "Update a job application"
     method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
-    method_option :status, aliases: "-s", desc: "New status (#{STATUSES.join(', ')})"
+    method_option :status, aliases: "-s", desc: "New status code (see `bin/jt statuses`)"
     method_option :role, aliases: "-r", desc: "Role title"
     method_option :notes, aliases: "-n", desc: "Notes"
     method_option :url, aliases: "-u", desc: "Job posting URL"
@@ -206,6 +208,11 @@ module JobTracker
       days = resolve_days_in_office
       return if days == :conflict
 
+      if options[:status] && !status_codes.include?(options[:status])
+        puts "Invalid status '#{options[:status]}'. Valid statuses: #{status_codes.join(', ')}"
+        return
+      end
+
       attrs = {}
       attrs[:status] = options[:status] if options[:status]
       attrs[:role_title] = options[:role] if options[:role]
@@ -219,6 +226,48 @@ module JobTracker
       else
         puts "Error: #{job.errors.full_messages.join(', ')}"
       end
+    end
+
+    desc "status-add CODE", "Add a new enum status code"
+    method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
+    method_option :label, type: :string, desc: "Display label"
+    method_option :terminal, type: :boolean, default: false, desc: "Mark as a terminal status"
+
+    def status_add(code = nil)
+      return help("status-add") if options[:help]
+
+      attributes = JobTracker::StatusCatalog.add(
+        code,
+        label: options[:label],
+        terminal: options[:terminal]
+      )
+      puts "Added status #{code}: #{attributes.fetch('label')} (value #{attributes.fetch('value')})."
+      puts "The new enum is available to newly started CLI and web processes."
+    rescue JobTracker::StatusCatalog::ValidationError => e
+      puts "Error: #{e.message}"
+    end
+
+    desc "status-update CODE", "Update an enum status code or display label"
+    method_option :help, aliases: "-h", type: :boolean, desc: "Show help for this command"
+    method_option :new_code, type: :string, desc: "Replacement enum code"
+    method_option :label, type: :string, desc: "Replacement display label"
+    method_option :terminal, type: :boolean, desc: "Mark terminal or use --no-terminal to mark active"
+
+    def status_update(code = nil)
+      return help("status-update") if options[:help]
+
+      terminal = options.key?(:terminal) ? options[:terminal] : nil
+      attributes = JobTracker::StatusCatalog.update(
+        code,
+        new_code: options[:new_code],
+        label: options[:label],
+        terminal: terminal
+      )
+      updated_code = options[:new_code].presence || code
+      puts "Updated status #{updated_code}: #{attributes.fetch('label')} (value #{attributes.fetch('value')})."
+      puts "The updated enum is available to newly started CLI and web processes."
+    rescue JobTracker::StatusCatalog::ValidationError => e
+      puts "Error: #{e.message}"
     end
 
     desc "export", "Export all job applications to CSV"
@@ -287,6 +336,14 @@ module JobTracker
     end
 
     private
+
+    def status_codes
+      JobTracker::StatusCatalog.codes
+    end
+
+    def status_display(job_application)
+      "#{job_application.status_label} (#{job_application.status})"
+    end
 
     def parse_date_option(key)
       return nil unless options[key]

@@ -1,5 +1,6 @@
 require 'rails_helper'
 require_relative '../../lib/job_tracker/cli'
+require 'tmpdir'
 
 RSpec.describe JobTracker::CLI do
   let(:cli) { described_class.new }
@@ -17,7 +18,7 @@ RSpec.describe JobTracker::CLI do
 
     it 'shows status in the output' do
       create(:job_application, company: 'Beta Inc', status: :phone_screen)
-      expect { cli.list }.to output(/phone_screen/).to_stdout
+      expect { cli.list }.to output(/Phone Screen.*phone_screen/).to_stdout
     end
 
     it 'displays a message when no applications exist' do
@@ -187,6 +188,12 @@ RSpec.describe JobTracker::CLI do
     it 'shows Arrangement: Unknown when days_in_office is nil' do
       job = create(:job_application, days_in_office: nil)
       expect { cli.show(job.id) }.to output(/Arrangement:.*Unknown/).to_stdout
+    end
+
+    it 'shows the status display label and code' do
+      job = create(:job_application, status: :phone_screen)
+
+      expect { cli.show(job.id) }.to output(/Status:.*Phone Screen.*phone_screen/).to_stdout
     end
   end
 
@@ -366,6 +373,95 @@ RSpec.describe JobTracker::CLI do
 
     it 'lists all valid statuses' do
       expect { cli.statuses }.to output(/cold_call.*applied.*phone_screen.*technical_screen.*onsite.*offer_received.*accepted.*rejected.*withdrawn.*ghosted/m).to_stdout
+    end
+
+    it 'lists display labels and terminal status' do
+      expect { cli.statuses }.to output(/phone_screen.*Phone Screen.*rejected.*Rejected.*terminal/m).to_stdout
+    end
+  end
+
+  context 'when managing status codes' do
+    let(:status_config_dir) { Pathname(Dir.mktmpdir) }
+    let(:status_config_path) { status_config_dir.join('job_statuses.yml') }
+    let(:status_definitions) do
+      {
+        'applied' => { 'value' => 1, 'label' => 'Applied', 'terminal' => false, 'default' => true },
+        'rejected' => { 'value' => 7, 'label' => 'Rejected', 'terminal' => true }
+      }
+    end
+
+    before do
+      File.write(status_config_path, YAML.dump(status_definitions))
+      allow(JobTracker::StatusCatalog).to receive(:config_path).and_return(status_config_path)
+    end
+
+    after { FileUtils.remove_entry(status_config_dir) }
+
+    describe '#status_add' do
+      it 'shows command help with --help and -h without requiring a label' do
+        %w[--help -h].each do |flag|
+          expect { described_class.start([ 'status-add', flag ]) }
+            .to output(/Usage:.*status-add CODE.*--label.*--terminal/m).to_stdout
+        end
+      end
+
+      it 'adds a new enum code and display label' do
+        cli.options = { label: 'Final Interview' }
+
+        expect { cli.status_add('final_interview') }.to output(/Added status.*final_interview.*Final Interview/i).to_stdout
+        expect(JobTracker::StatusCatalog.definition('final_interview')).to include(
+          'value' => 8,
+          'label' => 'Final Interview'
+        )
+      end
+
+      it 'adds a terminal status' do
+        cli.options = { label: 'Declined', terminal: true }
+
+        cli.status_add('declined')
+
+        expect(JobTracker::StatusCatalog.definition('declined')).to include('terminal' => true)
+      end
+
+      it 'reports validation errors without changing the catalog' do
+        cli.options = { label: 'Applied Again' }
+
+        expect { cli.status_add('applied') }.to output(/already exists/i).to_stdout
+        expect(JobTracker::StatusCatalog.codes).to contain_exactly('applied', 'rejected')
+      end
+    end
+
+    describe '#status_update' do
+      it 'shows command help with --help and -h' do
+        %w[--help -h].each do |flag|
+          expect { described_class.start([ 'status-update', flag ]) }
+            .to output(/Usage:.*status-update CODE.*--new-code.*--label.*--terminal/m).to_stdout
+        end
+      end
+
+      it 'changes a status display label' do
+        cli.options = { label: 'Application Sent' }
+
+        expect { cli.status_update('applied') }.to output(/Updated status.*applied.*Application Sent/i).to_stdout
+        expect(JobTracker::StatusCatalog.label('applied')).to eq('Application Sent')
+      end
+
+      it 'renames a status code while retaining its integer value' do
+        cli.options = { new_code: 'submitted', label: 'Submitted' }
+
+        cli.status_update('applied')
+
+        expect(JobTracker::StatusCatalog.definition('submitted')).to include(
+          'value' => 1,
+          'label' => 'Submitted'
+        )
+      end
+
+      it 'reports an unknown status code' do
+        cli.options = { label: 'Missing' }
+
+        expect { cli.status_update('missing') }.to output(/not found/i).to_stdout
+      end
     end
   end
 

@@ -99,9 +99,34 @@ bin/jt status 12 rejected
 bin/jt statuses
 ```
 
-Valid values: `cold_call`, `applied`, `phone_screen`, `technical_screen`, `onsite`, `offer_received`, `accepted`, `rejected`, `withdrawn`, `ghosted`.
+This lists each enum code, its display label, and whether it is terminal.
 
-Terminal statuses (`rejected`, `withdrawn`, `ghosted`) are excluded from `--active` filtering.
+### Manage status codes and labels
+
+```bash
+# Add a new enum value; the next unused integer is assigned automatically
+bin/jt status-add final_interview --label "Final Interview"
+
+# Add a terminal enum value
+bin/jt status-add declined --label "Declined" --terminal
+
+# Change only the user-facing wording
+bin/jt status-update phone_screen --label "Recruiter Screen"
+
+# Rename a code without changing its stored integer value
+bin/jt status-update onsite --new-code panel_interview --label "Panel Interview"
+
+# Change terminal behavior
+bin/jt status-update withdrawn --no-terminal
+```
+
+Status definitions live in `config/job_statuses.yml`. Display-label changes are
+read immediately. New or renamed enum codes are available after starting a new
+CLI or web process. Existing job records remain valid because renames retain the
+same integer value.
+
+Statuses marked `terminal: true` in `config/job_statuses.yml` are excluded from
+`--active` filtering.
 
 ### Export to CSV
 

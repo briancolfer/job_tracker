@@ -7,14 +7,15 @@ small, versioned JSON API for trusted local integrations. It also makes invalid
 enum values normal model validation errors instead of allowing them to raise an
 `ArgumentError` during assignment.
 
-The existing full edit form and CLI remain available. No database migration or
-change to the stored integer values of the `JobApplication.status` enum is
-included.
+The existing full edit form and job-status assignment commands remain available.
+No database migration or change to the stored integer values of existing
+`JobApplication.status` records is required.
 
 ## Status behavior
 
-`JobApplication.status` remains an integer-backed Rails enum. The supported
-values are:
+`JobApplication.status` remains an integer-backed Rails enum. Its mapping,
+display labels, default, and terminal behavior are loaded from
+`config/job_statuses.yml` when the model boots. The initial codes are:
 
 ```text
 cold_call
@@ -29,10 +30,25 @@ withdrawn
 ghosted
 ```
 
-The enum now uses `validate: true`. Assigning an unsupported value therefore
+Each catalog entry has a stable integer `value`, a user-facing `label`, and a
+`terminal` flag. One entry is marked as the default:
+
+```yaml
+applied:
+  value: 1
+  label: Applied
+  terminal: false
+  default: true
+```
+
+The enum uses `validate: true`. Assigning an unsupported value therefore
 makes the record invalid and adds `Status is not included in the list` to its
 errors. This lets both the HTML controller and JSON API report invalid input
 without an unhandled enum-assignment exception.
+
+CLI and web output use the configured display label. The underlying code is
+still used for filters, CSV export, and JSON updates. CLI job listings show both,
+for example `Recruiter Screen (phone_screen)`.
 
 ### Updating an existing application's status
 
@@ -53,27 +69,56 @@ PATCH /job_applications/:id/status
 On success it redirects to the applications list with `Application status
 updated.`. On validation failure it redirects with the model error messages.
 
-### Adding a brand-new status definition
+### Managing enum codes and labels
 
-Status definitions are not dynamically administered. Adding a new pipeline
-status remains a code change. Keep these locations synchronized:
+Add a status code and label:
 
-1. Add the enum key with a new, previously unused integer in
-   `app/models/job_application.rb`. Never renumber existing values because the
-   database stores those integers.
-2. Add the value to `JobTracker::CLI::STATUSES` in `lib/job_tracker/cli.rb`.
-3. Add or update model and CLI expectations in
-   `spec/models/job_application_spec.rb` and `spec/lib/cli_spec.rb`.
-4. Add a badge class in `app/helpers/application_helper.rb` if the default gray
-   badge is not appropriate.
-5. If the status is terminal, add it to `JobApplication::TERMINAL_STATUSES` and
-   cover the `active` and `terminal` scopes.
-6. If imported CSV text should map to it, update `STATUS_MAP` in
-   `lib/tasks/import.rake` and add an import example.
-7. Update the valid-status list in `README.md`.
+```bash
+bin/jt status-add final_interview --label "Final Interview"
+```
 
-The web selectors and `GET /api/v1/statuses` read directly from the model enum,
-so they automatically include new model keys.
+Add a status that should be excluded from active applications:
+
+```bash
+bin/jt status-add declined --label "Declined" --terminal
+```
+
+Change only the display label:
+
+```bash
+bin/jt status-update phone_screen --label "Recruiter Screen"
+```
+
+Rename an enum code and optionally change its label:
+
+```bash
+bin/jt status-update onsite \
+  --new-code panel_interview \
+  --label "Panel Interview"
+```
+
+Change terminal behavior with `--terminal` or `--no-terminal`:
+
+```bash
+bin/jt status-update withdrawn --no-terminal
+```
+
+The catalog validates that codes use lowercase `snake_case`, labels are present,
+and codes are unique. A new code receives the next unused integer. Renaming a
+code retains its existing integer, including when the default status is renamed,
+so existing database rows continue to resolve correctly.
+
+Catalog writes use a temporary file followed by an atomic rename. The catalog is
+part of the application configuration and should be committed to version control
+after intentional CLI changes.
+
+Rails defines enum methods when the model class loads. Label changes are read
+immediately, but a newly added or renamed code requires a new CLI invocation or
+web process restart. The command prints this reminder after a successful change.
+
+The web selectors and `GET /api/v1/statuses` reflect the model's enum mapping
+after restart. Custom statuses use the fallback gray badge unless a specific
+class is added to `ApplicationHelper::STATUS_BADGE_CLASSES`.
 
 ## JSON API contract
 
@@ -100,6 +145,7 @@ Application responses contain:
   "days_in_office": 2,
   "source": "LinkedIn",
   "status": "phone_screen",
+  "status_label": "Recruiter Screen",
   "apply_date": "2026-08-10",
   "job_posting_url": "https://example.com/jobs/12",
   "notes": "Recruiter call completed",
@@ -109,8 +155,10 @@ Application responses contain:
 }
 ```
 
-`arrangement` is the human-readable value from `arrangement_label`; the raw
-`days_in_office` integer is retained for clients that need structured data.
+`status` remains the stable machine-readable enum code while `status_label` is
+the configurable wording. `arrangement` is the human-readable value from
+`arrangement_label`; the raw `days_in_office` integer is retained for clients
+that need structured data.
 
 ### Updating an application
 
@@ -179,17 +227,21 @@ authentication mechanism is added.
 
 The change was driven by tests in this order:
 
-1. A model example for invalid status validation.
-2. Request examples for API list, show, update, validation failure, not found,
-   and status discovery.
-3. A system example for updating status from the applications list.
-4. The minimum model, routes, controllers, and view implementation needed to
-   make those examples pass.
+1. Catalog examples for adding codes, updating labels, renaming codes while
+   preserving integer values, terminal flags, and invalid changes.
+2. CLI examples for `statuses`, `status-add`, `status-update`, and configured
+   labels in job output.
+3. Model examples for catalog-backed enum mappings, labels, and dynamic
+   terminal scopes.
+4. Request and system examples for exposing configured labels through the API
+   and web UI.
+5. The minimum catalog, model, CLI, API, and view implementation needed to make
+   each new example pass.
 
 Verification at completion:
 
-- RSpec: 183 examples, 0 failures.
-- RuboCop: 7 touched Ruby/spec files, no offenses.
+- RSpec: 205 examples, 0 failures.
+- RuboCop: 9 touched Ruby/spec files, no offenses.
 - `git diff --check`: clean.
 - Brakeman: no findings in the new API code. One pre-existing weak warning
   remains for the stored job-posting URL used by the show-page link.

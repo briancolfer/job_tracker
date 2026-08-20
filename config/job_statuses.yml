@@ -1,0 +1,50 @@
+---
+cold_call:
+  value: 0
+  label: Cold Call
+  terminal: false
+applied:
+  value: 1
+  label: Applied
+  terminal: false
+  default: true
+phone_screen:
+  value: 2
+  label: Phone Screen
+  terminal: false
+technical_screen:
+  value: 3
+  label: Technical Screen
+  terminal: false
+onsite:
+  value: 4
+  label: On-site
+  terminal: false
+offer_received:
+  value: 5
+  label: Offer Received
+  terminal: false
+accepted:
+  value: 6
+  label: Accepted
+  terminal: true
+rejected:
+  value: 7
+  label: Rejected
+  terminal: true
+withdrawn:
+  value: 8
+  label: Withdrawn
+  terminal: true
+ghosted:
+  value: 9
+  label: Ghosted
+  terminal: true
+job_filled:
+  value: 10
+  label: Job filled
+  terminal: true
+second_round:
+  value: 11
+  label: Second round
+  terminal: false
