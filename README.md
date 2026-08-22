@@ -120,13 +120,21 @@ bin/jt status-update onsite --new-code panel_interview --label "Panel Interview"
 bin/jt status-update withdrawn --no-terminal
 ```
 
-Status definitions live in `config/job_statuses.yml`. Display-label changes are
-read immediately. New or renamed enum codes are available after starting a new
-CLI or web process. Existing job records remain valid because renames retain the
+Status definitions live in the `job_statuses` database table. The initial
+definitions are loaded by `bin/rails db:seed`. Display-label changes are read
+immediately. New or renamed enum codes are available after starting a new CLI
+or web process. Existing job records remain valid because renames retain the
 same integer value.
 
-Statuses marked `terminal: true` in `config/job_statuses.yml` are excluded from
-`--active` filtering.
+For an existing installation, create and populate the table with:
+
+```bash
+bin/rails db:migrate
+bin/rails db:seed
+```
+
+Statuses marked as terminal in the database are excluded from `--active`
+filtering.
 
 ### Export to CSV
 

@@ -381,21 +381,11 @@ RSpec.describe JobTracker::CLI do
   end
 
   context 'when managing status codes' do
-    let(:status_config_dir) { Pathname(Dir.mktmpdir) }
-    let(:status_config_path) { status_config_dir.join('job_statuses.yml') }
-    let(:status_definitions) do
-      {
-        'applied' => { 'value' => 1, 'label' => 'Applied', 'terminal' => false, 'default' => true },
-        'rejected' => { 'value' => 7, 'label' => 'Rejected', 'terminal' => true }
-      }
-    end
-
     before do
-      File.write(status_config_path, YAML.dump(status_definitions))
-      allow(JobTracker::StatusCatalog).to receive(:config_path).and_return(status_config_path)
+      JobStatus.delete_all
+      JobStatus.create!(code: 'applied', value: 1, label: 'Applied', terminal: false, default: true)
+      JobStatus.create!(code: 'rejected', value: 7, label: 'Rejected', terminal: true)
     end
-
-    after { FileUtils.remove_entry(status_config_dir) }
 
     describe '#status_add' do
       it 'shows command help with --help and -h without requiring a label' do
@@ -409,9 +399,9 @@ RSpec.describe JobTracker::CLI do
         cli.options = { label: 'Final Interview' }
 
         expect { cli.status_add('final_interview') }.to output(/Added status.*final_interview.*Final Interview/i).to_stdout
-        expect(JobTracker::StatusCatalog.definition('final_interview')).to include(
-          'value' => 8,
-          'label' => 'Final Interview'
+        expect(JobStatus.find_by(code: 'final_interview')).to have_attributes(
+          value: 8,
+          label: 'Final Interview'
         )
       end
 
@@ -420,14 +410,14 @@ RSpec.describe JobTracker::CLI do
 
         cli.status_add('declined')
 
-        expect(JobTracker::StatusCatalog.definition('declined')).to include('terminal' => true)
+        expect(JobStatus.find_by(code: 'declined')).to be_terminal
       end
 
       it 'reports validation errors without changing the catalog' do
         cli.options = { label: 'Applied Again' }
 
         expect { cli.status_add('applied') }.to output(/already exists/i).to_stdout
-        expect(JobTracker::StatusCatalog.codes).to contain_exactly('applied', 'rejected')
+        expect(JobStatus.pluck(:code)).to contain_exactly('applied', 'rejected')
       end
     end
 
@@ -443,7 +433,7 @@ RSpec.describe JobTracker::CLI do
         cli.options = { label: 'Application Sent' }
 
         expect { cli.status_update('applied') }.to output(/Updated status.*applied.*Application Sent/i).to_stdout
-        expect(JobTracker::StatusCatalog.label('applied')).to eq('Application Sent')
+        expect(JobStatus.find_by(code: 'applied').label).to eq('Application Sent')
       end
 
       it 'renames a status code while retaining its integer value' do
@@ -451,9 +441,9 @@ RSpec.describe JobTracker::CLI do
 
         cli.status_update('applied')
 
-        expect(JobTracker::StatusCatalog.definition('submitted')).to include(
-          'value' => 1,
-          'label' => 'Submitted'
+        expect(JobStatus.find_by(code: 'submitted')).to have_attributes(
+          value: 1,
+          label: 'Submitted'
         )
       end
 

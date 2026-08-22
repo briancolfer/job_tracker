@@ -51,4 +51,4 @@ second_round:
 on_hold:
   value: 12
   label: On hold
-  terminal: false
+  terminal: true

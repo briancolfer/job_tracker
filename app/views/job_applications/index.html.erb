@@ -34,7 +34,7 @@
                 <%= form.label :status, "Status for #{job.company}",
                       for: "job_application_#{job.id}_status", class: "sr-only" %>
                 <%= form.select :status,
-                      JobApplication.statuses.keys.map { |code| [ JobTracker::StatusCatalog.label(code), code ] },
+                      JobApplication.statuses.keys.map { |code| [ JobStatus.label(code), code ] },
                       { selected: job.status },
                       id: "job_application_#{job.id}_status",
                       class: "border border-gray-300 rounded px-2 py-1 text-xs bg-white" %>

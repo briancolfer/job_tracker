@@ -37,6 +37,10 @@ begin
 rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
+
+# Job statuses are reference data required before JobApplication defines its enum.
+Rails.application.load_seed
+
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
   # Include TimeHelpers for time manipulation in tests (e.g. travel_to)

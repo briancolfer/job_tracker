@@ -8,14 +8,14 @@ enum values normal model validation errors instead of allowing them to raise an
 `ArgumentError` during assignment.
 
 The existing full edit form and job-status assignment commands remain available.
-No database migration or change to the stored integer values of existing
-`JobApplication.status` records is required.
+The status catalog now has its own database table, while the stored integer
+values of existing `JobApplication.status` records remain unchanged.
 
 ## Status behavior
 
 `JobApplication.status` remains an integer-backed Rails enum. Its mapping,
-display labels, default, and terminal behavior are loaded from
-`config/job_statuses.yml` when the model boots. The initial codes are:
+display labels, default, and terminal behavior are loaded from the `job_statuses`
+database table. The initial codes are created by `bin/rails db:seed`:
 
 ```text
 cold_call
@@ -28,17 +28,18 @@ accepted
 rejected
 withdrawn
 ghosted
+job_filled
+second_round
+on_hold
 ```
 
 Each catalog entry has a stable integer `value`, a user-facing `label`, and a
 `terminal` flag. One entry is marked as the default:
 
-```yaml
-applied:
-  value: 1
-  label: Applied
-  terminal: false
-  default: true
+```ruby
+JobStatus.find_by(code: "applied").attributes.slice(
+  "value", "label", "terminal", "default"
+)
 ```
 
 The enum uses `validate: true`. Assigning an unsupported value therefore
@@ -108,9 +109,8 @@ and codes are unique. A new code receives the next unused integer. Renaming a
 code retains its existing integer, including when the default status is renamed,
 so existing database rows continue to resolve correctly.
 
-Catalog writes use a temporary file followed by an atomic rename. The catalog is
-part of the application configuration and should be committed to version control
-after intentional CLI changes.
+Catalog writes are persisted in the database through the `JobStatus` model.
+Codes and integer values are unique, and only one status can be the default.
 
 Rails defines enum methods when the model class loads. Label changes are read
 immediately, but a newly added or renamed code requires a new CLI invocation or

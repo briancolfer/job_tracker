@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_30_002845) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_22_000000) do
   create_table "contacts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
@@ -59,6 +59,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_002845) do
     t.string "source"
     t.integer "status"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "job_statuses", force: :cascade do |t|
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.boolean "default", default: false, null: false
+    t.string "label", null: false
+    t.boolean "terminal", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.integer "value", null: false
+    t.index ["code"], name: "index_job_statuses_on_code", unique: true
+    t.index ["default"], name: "index_job_statuses_on_default", unique: true, where: "\"default\" = 1"
+    t.index ["value"], name: "index_job_statuses_on_value", unique: true
   end
 
   add_foreign_key "contacts", "job_applications"

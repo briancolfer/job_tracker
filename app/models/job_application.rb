@@ -1,7 +1,7 @@
 class JobApplication < ApplicationRecord
   enum :status,
-    JobTracker::StatusCatalog.enum_mapping,
-    default: JobTracker::StatusCatalog.default_code.to_sym,
+    JobStatus.enum_mapping,
+    default: JobStatus.default_code.to_sym,
     validate: true
 
   has_many :interview_stages, dependent: :destroy
@@ -34,11 +34,11 @@ class JobApplication < ApplicationRecord
   end
 
   def status_label
-    JobTracker::StatusCatalog.label(status)
+    JobStatus.label(status)
   end
 
-  scope :active, -> { where.not(status: JobTracker::StatusCatalog.terminal_codes & statuses.keys) }
-  scope :terminal, -> { where(status: JobTracker::StatusCatalog.terminal_codes & statuses.keys) }
+  scope :active, -> { where.not(status: JobStatus.terminal_codes & statuses.keys) }
+  scope :terminal, -> { where(status: JobStatus.terminal_codes & statuses.keys) }
   scope :applied_after, ->(date) { where("apply_date >= ?", date) }
   scope :applied_before, ->(date) { where("apply_date <= ?", date) }
 end

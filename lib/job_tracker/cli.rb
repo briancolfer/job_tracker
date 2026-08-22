@@ -2,7 +2,6 @@ require "thor"
 require "csv"
 require "chronic"
 require_relative "date_parser"
-require_relative "status_catalog"
 
 module JobTracker
   class CLI < Thor
@@ -155,9 +154,9 @@ module JobTracker
       return help("statuses") if options[:help]
 
       puts "Valid statuses:"
-      JobTracker::StatusCatalog.definitions.each do |code, attributes|
-        terminal = attributes["terminal"] ? " [terminal]" : ""
-        puts "  #{code.ljust(20)} #{attributes.fetch('label')}#{terminal}"
+      JobStatus.ordered.each do |status|
+        terminal = status.terminal? ? " [terminal]" : ""
+        puts "  #{status.code.ljust(20)} #{status.label}#{terminal}"
       end
     end
 
@@ -236,14 +235,14 @@ module JobTracker
     def status_add(code = nil)
       return help("status-add") if options[:help]
 
-      attributes = JobTracker::StatusCatalog.add(
+      status = JobStatus.add(
         code,
         label: options[:label],
         terminal: options[:terminal]
       )
-      puts "Added status #{code}: #{attributes.fetch('label')} (value #{attributes.fetch('value')})."
+      puts "Added status #{status.code}: #{status.label} (value #{status.value})."
       puts "The new enum is available to newly started CLI and web processes."
-    rescue JobTracker::StatusCatalog::ValidationError => e
+    rescue JobStatus::ValidationError => e
       puts "Error: #{e.message}"
     end
 
@@ -257,16 +256,17 @@ module JobTracker
       return help("status-update") if options[:help]
 
       terminal = options.key?(:terminal) ? options[:terminal] : nil
-      attributes = JobTracker::StatusCatalog.update(
-        code,
+      status = JobStatus.find_by(code: code)
+      raise JobStatus::ValidationError, "Status '#{code}' not found" unless status
+
+      status.update_definition(
         new_code: options[:new_code],
         label: options[:label],
         terminal: terminal
       )
-      updated_code = options[:new_code].presence || code
-      puts "Updated status #{updated_code}: #{attributes.fetch('label')} (value #{attributes.fetch('value')})."
+      puts "Updated status #{status.code}: #{status.label} (value #{status.value})."
       puts "The updated enum is available to newly started CLI and web processes."
-    rescue JobTracker::StatusCatalog::ValidationError => e
+    rescue JobStatus::ValidationError => e
       puts "Error: #{e.message}"
     end
 
@@ -338,7 +338,7 @@ module JobTracker
     private
 
     def status_codes
-      JobTracker::StatusCatalog.codes
+      JobStatus.codes
     end
 
     def status_display(job_application)
